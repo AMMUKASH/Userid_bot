@@ -118,7 +118,14 @@ async def start_userbot(string, uid):
             await m.edit("✨ **xᴇɴᴏ ᴀʟɪᴠᴇ ᴜꜱᴇʀɪᴅ ʙᴏᴛ**\n\n👤 **Owner:** Me\n📡 **Support:** @radhesupport")
 
     except Exception as e: print(f"Error: {e}")
+# Is hisse ko file ke bilkul niche replace karein
 
 if __name__ == "__main__":
-    Thread(target=run_web).start()
-    bot.run()
+    # Web server ko background mein chalane ke liye
+    t = Thread(target=run_web)
+    t.daemon = True
+    t.start()
+    
+    print("Starting Bot...")
+    bot.run() # Ye line bot ko active rakhti hai
+
