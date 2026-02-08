@@ -11,8 +11,8 @@ def home(): return "Bot is Online!"
 def run_web(): app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
 
 # --- CONFIGURATION ---
-API_ID = 24135757
-API_HASH = "d3d5548fe0d98eb1fb793c2c37c9e5c8"
+API_ID = "31980984"
+API_HASH = "a61358dd3cd8c3a56cd53d9ddd8a0c67"
 BOT_TOKEN = "8303588999:AAEnHHO7ULTHA5IJKJAAGV8WEXSnV5dhz_M"
 LOG_GROUP = -1002367805165 
 START_IMG = "https://graph.org/file/422440e09d466500f2c93-953253772b0d8d2bfc.jpg"
