@@ -23,9 +23,9 @@ active_tasks = {} # To store stop status for raids/tags
 
 # Buttons
 main_buttons = InlineKeyboardMarkup([
-    [InlineKeyboardButton("𝚄𝚙𝚍𝚊𝚝𝚎", url="https://t.me/radhesupport"),
-     InlineKeyboardButton("𝚂𝚞𝚙𝚙𝚘𝚛𝚝", url="https://t.me/+PKYLDIEYiTljMzMx")],
-    [InlineKeyboardButton("𝙲𝚕𝚘𝚜𝚎", callback_data="close")]
+    [InlineKeyboardButton("❂ 𝐔𝛒ᴅ𝛂𝛕𝛆 ❂ ", url="https://t.me/radhesupport"),
+     InlineKeyboardButton("❂ 𝐒𝛖𝛒𝛒𝛔ʀ𝛕 ❂", url="https://t.me/+PKYLDIEYiTljMzMx")],
+    [InlineKeyboardButton("❂ 𝐂𝛊𝛐ꜱ𝛆 ❂", callback_data="close")]
 ])
 
 @bot.on_message(filters.command("start") & filters.private)
