@@ -19,7 +19,6 @@ START_IMG = "https://graph.org/file/422440e09d466500f2c93-953253772b0d8d2bfc.jpg
 
 bot = Client("Useridgenbot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 user_data = {}
-stop_tag = False
 
 # Buttons
 main_buttons = InlineKeyboardMarkup([
