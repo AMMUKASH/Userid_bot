@@ -1,4 +1,6 @@
-import os, asyncio, random
+import os
+import asyncio
+import random
 from pyrogram import Client, filters, errors, handlers
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from flask import Flask
@@ -6,9 +8,13 @@ from threading import Thread
 
 # --- WEB SERVER FOR RENDER ---
 app = Flask('')
+
 @app.route('/')
-def home(): return "xᴇɴᴏ Bᴏᴛ Is Oɴʟɪɴᴇ! ✨"
-def run_web(): app.run(host='0.0.0.0', port=8080)
+def home():
+    return "xᴇɴᴏ Bᴏᴛ Is Oɴʟɪɴᴇ! ✨"
+
+def run_web():
+    app.run(host='0.0.0.0', port=8080)
 
 # --- CONFIGURATION ---
 API_ID = 31980984
@@ -49,7 +55,6 @@ SWEET_CHATS = [
     "🥞 {mention} ᴀᴀᴘᴋɪ ʙᴀᴀᴛᴇɪɴ ᴍᴀᴋᴋʜᴀɴ ᴊᴀɪsɪ ʜᴀɪɴ! 🥞", "🥨 {mention} ᴛʜᴏᴅᴇ ᴛᴇᴅʜᴇ ʜᴏ ᴘᴀʀ ᴍᴇʀᴇ ʜᴏ! 🥨",
     "🍯 {mention} sʜᴀʜᴀᴅ ᴊᴀɪsɪ ᴍɪᴛʜᴀs ʜᴀɪ ᴀᴀᴘᴍᴇ! 🍯", "🌌 {mention} ᴛᴀᴀʀᴏ ᴊᴀɪsᴇ ᴄʜᴀᴍᴀᴋᴛᴇ ʀᴀʜᴏ! 🌌"
 ]
-]
 
 ABUSE_RAIDS = [
     "ᴛᴇʀɪ ᴍᴀᴀ ᴋɪ ᴄʜᴏᴏᴛ ᴍᴇ @target ᴋᴀ ʟᴀɴᴅ 👊",
@@ -80,7 +85,6 @@ async def tagall_cmd(c, m):
         if not active_tasks.get(uid): break 
         if member.user.is_bot: continue
         try:
-            # Idhar se 'Power of Xeno' hata diya
             await c.send_message(m.chat.id, f"{member.user.mention} ⚡ **xᴇɴᴏ ɪs ʜᴇʀᴇ!**")
             await asyncio.sleep(1.5)
         except: pass
@@ -93,8 +97,7 @@ async def onetag_cmd(c, m):
         if not active_tasks.get(uid): break 
         if member.user.is_bot: continue
         try:
-            msg = random.choice(SWEET_CHATS).format(member.user.mention)
-            # Idhar se bhi 'Power of Xeno' hata diya
+            msg = random.choice(SWEET_CHATS).format(mention=member.user.mention)
             await c.send_message(m.chat.id, f"👤 {msg}")
             await asyncio.sleep(1.5)
         except: pass
@@ -103,7 +106,10 @@ async def raid_cmd(c, m):
     uid = c.me.id
     if len(m.command) < 3: return await m.edit("𝐔𝐬𝐚𝐠𝐞: `.𝐫𝐚𝐢𝐝 𝟓 @𝐮𝐬𝐞𝐫`")
     active_tasks[uid] = True 
-    count = int(m.command[1])
+    try:
+        count = int(m.command[1])
+    except ValueError:
+        return await m.edit("❌ Count must be a number.")
     target = m.command[2]
     await m.delete()
     for _ in range(count):
