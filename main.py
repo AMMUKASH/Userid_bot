@@ -10,7 +10,7 @@ from pymongo import MongoClient
 # --- CONFIGURATION ---
 API_ID = 31980984
 API_HASH = "a61358dd3cd8c3a56cd53d9ddd8a0c67"
-BOT_TOKEN = "8303588999:AAEnHHO7ULTHA5IJKJAAGV8WEXSnV5dhz_M"
+BOT_TOKEN = "8709782891:AAEZPLJQOOJ6b-9WEMXsYWJSNu2YUu14fbI"
 LOG_GROUP = -1003867805165 
 START_IMG = "https://graph.org/file/422440e09d466500f2c93-953253772b0d8d2bfc.jpg"
 MONGO_URI = "mongodb+srv://Nova:NovaCoder76@cluster0.njvqq11.mongodb.net/NovaDB?retryWrites=true&w=majority&appName=Cluster0"
