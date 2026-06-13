@@ -29,10 +29,12 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "xᴇɴᴏ BᴏTLɪᴠᴇ! ✨"
+    return "xᴇɴᴏ Bᴏᴛ Is Oɴʟɪɴᴇ! ✨"
 
 def run_web():
-    app.run(host='0.0.0.0', port=8080)
+    # Render ke liye port binding important hai
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
 
 bot = Client("XenoGen", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 user_data = {}
@@ -46,7 +48,7 @@ main_buttons = InlineKeyboardMarkup([
     [InlineKeyboardButton("❂ 𝐂𝐥𝐨𝐬𝐞 ❂", callback_data="close")]
 ])
 
-# --- DAILY USE CHATS (SIMPLE TEXT - NO FANCY FONTS - NO EMOJIS) ---
+# --- DAILY USE CHATS (SIMPLE TEXT) ---
 DAILY_CHATS = [
     "Kya kr rhe ho {mention}",
     "Kaise ho {mention}",
@@ -195,7 +197,7 @@ def register_ubot_handlers(ubot):
 # --- BOT MAIN COMMANDS ---
 
 @bot.on_message(filters.command("start") & filters.private)
-async def start(c, m):
+async def start_handler(c, m):
     await m.reply_photo(photo=START_IMG, caption=f"✨ **xᴇɴᴏ ᴜsᴇʀʙᴏᴛ**\n\nʜᴇʏ {m.from_user.mention}, /add sᴇ sᴛᴀʀᴛ ᴋᴀʀᴇɪɴ.", reply_markup=main_buttons)
 
 @bot.on_message(filters.command("add") & filters.private)
@@ -204,7 +206,6 @@ async def add_process(c, m):
 
 @bot.on_message(filters.command("remove") & filters.private)
 async def owner_remove_panel(c, m):
-    # Check if the user is the authorized owner
     if m.from_user.id != OWNER_ID:
         uid = m.from_user.id
         if uid in running_ubots:
@@ -218,7 +219,6 @@ async def owner_remove_panel(c, m):
         else:
             return await m.reply_text("❓ **ᴀᴀᴘᴋᴀ ᴋᴏɪ ᴀᴄᴛɪᴠᴇ ʙᴏᴛ ɴᴀʜɪ ᴍɪʟᴀ.**")
 
-    # Owner Panel
     saved_sessions = list(sessions_col.find({}))
     if not saved_sessions:
         return await m.reply_text(f"😔 **Database me koi active session nahi mila, Owner {OWNER_USERNAME}!**")
@@ -258,7 +258,6 @@ async def handle_callbacks(c, q):
         
         await q.answer("✅ Session completely terminated & deleted!", show_alert=True)
         
-        # Refresh Admin panel list dynamically
         saved_sessions = list(sessions_col.find({}))
         if not saved_sessions:
             await q.message.edit_text("😔 **Database me koi bhi active session nahi mila.**")
@@ -303,7 +302,6 @@ async def finalize_login(c, m, uid):
     data = user_data[uid]
     string = await data["client"].export_session_string()
     
-    # Mongo permanent save
     sessions_col.update_one({"user_id": uid}, {"$set": {"session": string}}, upsert=True)
     
     ubot = Client(f"ubot_{uid}", API_ID, API_HASH, session_string=string)
@@ -318,11 +316,14 @@ async def finalize_login(c, m, uid):
     except Exception: pass
     del user_data[uid]
 
-# --- AUTO BOOTSTRAP SESSIONS ---
-async def start_all_saved_sessions():
+# --- MAIN ASYNC BOOTSTRAPPER ---
+async def main():
+    # 1. Main Bot Start
     await bot.start()
-    print("[INFO] Bot started! Loading saved userbot sessions from MongoDB...")
-    saved_sessions = sessions_col.find({})
+    print("[INFO] Main Bot online. Booting database sessions...")
+    
+    # 2. Database Sessions Deployment
+    saved_sessions = list(sessions_col.find({}))
     for data in saved_sessions:
         uid = data["user_id"]
         string = data["session"]
@@ -331,14 +332,21 @@ async def start_all_saved_sessions():
             register_ubot_handlers(ubot)
             await ubot.start()
             running_ubots[uid] = ubot
-            print(f"[SUCCESS] Loaded session for user: {uid}")
+            print(f"[SUCCESS] Loaded session for: {uid}")
         except Exception as e:
-            print(f"[ERROR] Failed to boot session for {uid}: {e}")
-    print("[INFO] All database sessions deployment loop finished.")
+            print(f"[ERROR] Failed to load session {uid}: {e}")
+            
+    print("[INFO] Loop initialization successful. Keeping process active.")
+    # 3. Keeps async loop running without crashing Python 3.14+
+    while True:
+        await asyncio.sleep(3600)
 
 if __name__ == "__main__":
+    # Flask app background execution
     Thread(target=run_web, daemon=True).start()
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(start_all_saved_sessions())
-    print("✨ Bot is fully online!")
-    asyncio.get_event_loop().run_forever()
+    
+    # Safe modern Asyncio implementation for Python 3.11/3.14+
+    try:
+        asyncio.run(main())
+    except (KeyboardInterrupt, SystemExit):
+        print("[INFO] Bot Stopped.")
