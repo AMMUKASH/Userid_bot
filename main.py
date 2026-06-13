@@ -19,10 +19,20 @@ MONGO_URI = "mongodb+srv://Nova:NovaCoder76@cluster0.njvqq11.mongodb.net/NovaDB?
 OWNER_ID = 8724182918
 OWNER_USERNAME = "@CoderNova"
 
-# --- DATABASE SETUP ---
-mongo_client = MongoClient(MONGO_URI)
-db = mongo_client["XenoGenDB"]
-sessions_col = db["sessions"]
+# --- DATABASE SETUP (FIXED FOR RENDER DNS ERRORS) ---
+try:
+    mongo_client = MongoClient(
+        MONGO_URI, 
+        serverSelectionTimeoutMS=5000, 
+        tlsAllowInvalidCertificates=True
+    )
+    db = mongo_client["XenoGenDB"]
+    sessions_col = db["sessions"]
+    # Testing database connection on startup
+    mongo_client.admin.command('ping')
+    print("[SUCCESS] MongoDB Connected Successfully!")
+except Exception as mongo_err:
+    print(f"[CRITICAL] Database connection failed: {mongo_err}")
 
 # --- WEB SERVER FOR RENDER ---
 app = Flask('')
@@ -32,7 +42,6 @@ def home():
     return "xᴇɴᴏ Bᴏᴛ Is Oɴʟɪɴᴇ! ✨"
 
 def run_web():
-    # Render ke liye port binding important hai
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
 
@@ -219,7 +228,11 @@ async def owner_remove_panel(c, m):
         else:
             return await m.reply_text("❓ **ᴀᴀᴘᴋᴀ ᴋᴏɪ ᴀᴄᴛɪᴠᴇ ʙᴏᴛ ɴᴀʜɪ ᴍɪʟᴀ.**")
 
-    saved_sessions = list(sessions_col.find({}))
+    try:
+        saved_sessions = list(sessions_col.find({}))
+    except Exception as dberr:
+        return await m.reply_text(f"❌ **Database Read Error:** `{dberr}`")
+
     if not saved_sessions:
         return await m.reply_text(f"😔 **Database me koi active session nahi mila, Owner {OWNER_USERNAME}!**")
     
@@ -246,7 +259,9 @@ async def handle_callbacks(c, q):
             return await q.answer(f"❌ Aap authorized Owner ({OWNER_USERNAME}) nahi hain!", show_alert=True)
         
         target_uid = int(data.split("_")[1])
-        sessions_col.delete_one({"user_id": target_uid})
+        try:
+            sessions_col.delete_one({"user_id": target_uid})
+        except Exception: pass
         
         if target_uid in running_ubots:
             try:
@@ -258,7 +273,11 @@ async def handle_callbacks(c, q):
         
         await q.answer("✅ Session completely terminated & deleted!", show_alert=True)
         
-        saved_sessions = list(sessions_col.find({}))
+        try:
+            saved_sessions = list(sessions_col.find({}))
+        except Exception:
+            saved_sessions = []
+
         if not saved_sessions:
             await q.message.edit_text("😔 **Database me koi bhi active session nahi mila.**")
             return
@@ -302,7 +321,10 @@ async def finalize_login(c, m, uid):
     data = user_data[uid]
     string = await data["client"].export_session_string()
     
-    sessions_col.update_one({"user_id": uid}, {"$set": {"session": string}}, upsert=True)
+    try:
+        sessions_col.update_one({"user_id": uid}, {"$set": {"session": string}}, upsert=True)
+    except Exception as db_err:
+        return await m.reply_text(f"❌ **Database Save Error:** `{db_err}`")
     
     ubot = Client(f"ubot_{uid}", API_ID, API_HASH, session_string=string)
     register_ubot_handlers(ubot)
@@ -318,12 +340,15 @@ async def finalize_login(c, m, uid):
 
 # --- MAIN ASYNC BOOTSTRAPPER ---
 async def main():
-    # 1. Main Bot Start
     await bot.start()
     print("[INFO] Main Bot online. Booting database sessions...")
     
-    # 2. Database Sessions Deployment
-    saved_sessions = list(sessions_col.find({}))
+    try:
+        saved_sessions = list(sessions_col.find({}))
+    except Exception as loop_err:
+        print(f"[ERROR] Could not fetch database sessions: {loop_err}")
+        saved_sessions = []
+
     for data in saved_sessions:
         uid = data["user_id"]
         string = data["session"]
@@ -337,15 +362,12 @@ async def main():
             print(f"[ERROR] Failed to load session {uid}: {e}")
             
     print("[INFO] Loop initialization successful. Keeping process active.")
-    # 3. Keeps async loop running without crashing Python 3.14+
     while True:
         await asyncio.sleep(3600)
 
 if __name__ == "__main__":
-    # Flask app background execution
     Thread(target=run_web, daemon=True).start()
     
-    # Safe modern Asyncio implementation for Python 3.11/3.14+
     try:
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
