@@ -1,8 +1,19 @@
-import os
 import asyncio
+import sys
+
+# --- EMERGENCY PYTHON 3.14+ LOOP PATCH (MUST BE ON TOP) ---
+try:
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+except Exception as e:
+    print(f"[PATCH ERROR] Could not seed loop: {e}")
+
+import os
 import random
 import json
-import sys
 import time
 from pyrogram import Client, filters, errors, handlers, idle
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -32,6 +43,7 @@ FSUB_CHANNELS = [
 
 # STYLISH MEDIA LINKS (.mp4 file processed natively as animation)
 START_VIDEO = "https://files.catbox.moe/pnaxj0.mp4"
+ALIVE_IMG = "https://graph.org/file/422440e09d466500f2c93-953253772b0d8d2bfc.jpg"
 
 OWNER_ID = 8724182918
 OWNER_USERNAME = "@CoderNova"
@@ -441,7 +453,7 @@ if __name__ == "__main__":
     # Flask Web Service initialized inside a parallel daemon thread
     Thread(target=run_web, daemon=True).start()
     
-    # Modernized async event loop initializer to prevent RuntimeErrors on modern Python engines
+    # Run the loop via asyncio
     try:
         asyncio.run(start_services())
     except (KeyboardInterrupt, SystemExit):
