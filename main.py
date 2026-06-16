@@ -353,7 +353,7 @@ async def handle_steps(c, m):
         try:
             code = await temp_c.send_code(text)
             user_data[uid].update({"client": temp_c, "hash": code.phone_code_hash})
-            await m.reply_text("📩 **ᴏᴛᴘ sᴇɴᴛ!**\n\nᴘʟᴇᴀsᴇ sᴇɴᴅ ɪᴛ ғᴀsᴛ ʟɪᴋᴇ: `🪪` ᴏʀ `🪪🪪🪪🪪🪪`⚡")
+            await m.reply_text("📩 **ᴏᴛᴘ sᴇɴᴛ!**\n\nᴘʟᴇᴀsᴇ sᴇɴᴅ ɪᴛ ғᴀsᴛ ʟɪᴋᴇ: `1 2 3 4 5` ᴏʀ `12345`⚡")
         except Exception as e: await m.reply_text(f"❌ `{e}`")
     elif text.replace(" ", "").isdigit() and uid in user_data and "hash" in user_data[uid]:
         otp = text.replace(" ", "")
@@ -362,7 +362,7 @@ async def handle_steps(c, m):
             await finalize_login(c, m, uid)
         except errors.SessionPasswordNeeded:
             user_data[uid].update({"step": "password"})
-            await m.reply_text("🔐 **订ᴡᴏ-sᴛᴇᴘ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ!**\n\nᴘʟᴇᴀsᴇ sᴇɴᴅ ʏᴏᴜʀ 𝟸ғᴀ ᴘᴀssᴡᴏʀᴅ:")
+            await m.reply_text("🔐 **ᴛᴡᴏ-sᴛᴇᴘ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ!**\n\nᴘʟᴇᴀsᴇ sᴇɴᴅ ʏᴏᴜʀ 𝟸ғᴀ ᴘᴀssᴡᴏʀᴅ:")
         except Exception as e: await m.reply_text(f"❌ `{e}`")
     elif uid in user_data and user_data[uid].get("step") == "password":
         try:
@@ -392,10 +392,13 @@ async def finalize_login(c, m, uid):
 async def start_services():
     print("[INFO] Launching main Bot Engine...")
     await bot.start()
-    print("[SUCCESS] Engine active.")
+    print("[SUCCESS] Main engine active.")
     
     saved_sessions = load_local_sessions()
     for u_id, string in saved_sessions.items():
+        # Check ki galti se main bot ki id load na ho jaye userbot pool me
+        if int(u_id) == (await bot.get_me()).id:
+            continue
         try:
             ubot = Client(f"ubot_{u_id}", API_ID, API_HASH, session_string=string)
             register_ubot_handlers(ubot)
