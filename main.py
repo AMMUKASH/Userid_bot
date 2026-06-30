@@ -33,7 +33,7 @@ MONGO_URL = "mongodb+srv://misssqn_db_user:Nova01@cluster0.6xxsrwq.mongodb.net/?
 
 # FORCE JOIN CHANNELS/GROUPS
 FSUB_CHANNELS = [
-    "Genu_Bot_Support",
+    "NovaBot_Support",
     "Friend_Forevrrr",
     "Villain_Loves",
     "SticrAura"
@@ -116,8 +116,8 @@ active_tasks = {}
 running_ubots = {}
 
 # --- IN-MEMORY DATA FOR NEW FEATURES ---
-afk_users = {}  # Format: {user_id: {"reason": reason, "time": timestamp}}
-pm_guard_data = {}  # Format: {ubot_id: {stranger_id: warn_count}}
+afk_users = {}  
+pm_guard_data = {}  
 
 # --- SMALL CAPS KEYBOARDS & BUTTONS ---
 main_buttons = InlineKeyboardMarkup([
@@ -127,7 +127,7 @@ main_buttons = InlineKeyboardMarkup([
     ],
     [
         InlineKeyboardButton("👑 ᴏᴡɴᴇʀ", url=f"https://t.me/{OWNER_USERNAME.replace('@','') or 'CoderNova'}"),
-        InlineKeyboardButton("📢 ᴜᴘᴅᴀᴛᴇ", url="https://t.me/radhesupport")
+        InlineKeyboardButton("📢 ᴜᴘᴅᴀᴛᴇ", url="https://t.me/NovaBot_Support")
     ],
     [
         InlineKeyboardButton("📖 ɢᴜɪᴅᴇ", callback_data="guide_btn"),
@@ -199,13 +199,16 @@ async def alive_cmd(c, m):
     try:
         await m.delete()
         await c.send_photo(m.chat.id, photo=ALIVE_IMG, caption=alive_text)
-    except Exception: await m.edit_text(alive_text)
+    except Exception: 
+        try: await m.edit_text(alive_text)
+        except Exception: pass
 
 async def tagall_cmd(c, m):
     uid = c.me.id
     active_tasks[uid] = True
     input_text = m.text.split(None, 1)[1] if len(m.command) > 1 else "ʜᴇʏ, ᴋᴀʜᴀɴ ʜᴏ sᴀʙ?"
-    await m.delete()
+    try: await m.delete()
+    except Exception: pass
     try:
         async for member in c.get_chat_members(m.chat.id):
             if not active_tasks.get(uid): break 
@@ -221,7 +224,8 @@ async def tagall_cmd(c, m):
 async def onetag_cmd(c, m):
     uid = c.me.id
     active_tasks[uid] = True 
-    await m.delete()
+    try: await m.delete()
+    except Exception: pass
     try:
         async for member in c.get_chat_members(m.chat.id):
             if not active_tasks.get(uid): break 
@@ -241,13 +245,15 @@ async def raid_cmd(c, m):
     is_private = m.chat.type in [types.ChatType.PRIVATE, types.ChatType.BOT]
     
     if not is_private and not m.reply_to_message:
-        return await m.edit_text("❌ **ɢʀᴏᴜᴘ ᴍᴇ ᴋɪsɪ ᴋᴇ ᴍssɢ ᴘᴇ ʀᴇᴘʟʏ ᴋᴀʀᴋᴇ `.raid 5` ʟɪᴋʜᴏ ʏᴀ ᴘʜɪʀ ᴅᴍ ᴍᴇ ᴜsᴇ ᴋᴀʀᴏ!**")
+        try: return await m.edit_text("❌ **ɢʀᴏᴜᴘ ᴍᴇ ᴋɪsɪ ᴋᴇ ᴍssɢ ᴘᴇ ʀᴇᴘʟʏ ᴋᴀʀᴋᴇ `.raid 5` ʟɪᴋʜᴏ ʏᴀ ᴘʜɪʀ ᴅᴍ ᴍᴇ ᴜsᴇ ᴋᴀʀᴏ!**")
+        except Exception: return
         
     try: count = int(args[1]) if len(args) > 1 else 10
     except ValueError: count = 10
 
     active_tasks[uid] = True 
-    await m.delete()
+    try: await m.delete()
+    except Exception: pass
     reply_to_id = m.reply_to_message.id if m.reply_to_message else None
 
     for _ in range(count):
@@ -262,96 +268,146 @@ async def raid_cmd(c, m):
 async def stop_cmd(c, m):
     uid = c.me.id
     active_tasks[uid] = False 
-    await m.edit_text("🚫 **『 ᴀʟʟ ᴘʀᴏᴄᴇssᴇs sᴛᴏᴘᴘᴇᴅ ʙʏ ᴄᴏᴅᴇʀɴᴏᴠᴀ 』**")
+    try: await m.edit_text("🚫 **『 ᴀʟʟ ᴘʀᴏᴄᴇssᴇs sᴛᴏᴘᴘᴇᴅ ʙʏ ᴄᴏᴅᴇʀɴᴏᴠᴀ 』**")
+    except Exception: pass
 
-# --- NEW FEATURES IMPLEMENTATION ---
+# --- FIXED AUTOMATED EVENT PROCESSING FUNCTIONS ---
 
-# 1. AFK SYSTEM
+# FIXED: Re-added missing Group Welcome Handler definition
+async def group_welcome_handler(c, m):
+    if m.new_chat_members:
+        for member in m.new_chat_members:
+            if member.id == c.me.id:
+                try:
+                    welcome_text = (
+                        f"✨ **ʜᴇʟʟᴏ ᴇᴠᴇʀʏᴏɴᴇ!** ✨\n\n"
+                        f"ᴛʜᴀɴᴋs ғᴏʀ ɪɴᴠɪᴛɪɴɢ ᴍᴇ ʜᴇʀᴇ! 🤗\n"
+                        f"ɪ ᴀᴍ ᴀ ᴘᴏᴡᴇʀғᴜʟ **ᴄᴏᴅᴇʀɴᴏᴠᴀ ᴜsᴇʀʙᴏᴛ**.\n\n"
+                        f"👤 **ᴀᴄᴄᴏᴜɴᴛ:** {c.me.mention}\n"
+                        f"🚀 **ᴍʏ ᴘᴀɴᴇʟ:** {OWNER_USERNAME}"
+                    )
+                    await c.send_message(m.chat.id, welcome_text)
+                except Exception: pass
+
+# FIXED: Strict exception safety wrapper for Raw VC updates
+async def raw_vc_handler(c, update, users, chats):
+    try:
+        if isinstance(update, types.UpdateGroupCallParticipants):
+            for participant in update.participants:
+                user_id = participant.user_id
+                try:
+                    user = await c.get_users(user_id)
+                    mention = f"[{user.first_name or 'User'}](tg://user?id={user.id})"
+                    if not participant.left:
+                        if getattr(participant, "video", False) or not participant.muted:
+                            caption = f"🎙️ **...ᴠᴄ ᴜᴘᴅᴀᴛᴇ...** 🎙️\n\n⚡ {mention} ʜᴀs ᴊᴏɪɴᴇᴅ ᴛʜᴇ ᴠᴏɪᴄᴇ ᴄʜᴀᴛ! ʟᴇᴛ's ᴛᴀʟᴋ ✨"
+                            await c.send_message(update.call.chat_id, caption)
+                    elif participant.left:
+                        caption = f"🏃‍♂️ **...ᴠᴄ ᴜᴘᴅᴀᴛᴇ...** 🏃‍♂️\n\n📉 {mention} ʟᴇғᴛ ᴛʜᴇ ᴠᴏɪᴄᴇ ᴄʜᴀᴛ! ᴄᴏᴍᴇ ʙᴀᴄᴋ sᴏᴏɴ 🥺"
+                        await c.send_message(update.call.chat_id, caption)
+                except Exception: pass
+                
+        elif hasattr(update, "message") and isinstance(update.message, types.Message):
+            msg = update.message
+            if isinstance(msg.action, types.MessageActionGroupCallInvite):
+                try:
+                    inviter_id = msg.from_id.user_id if hasattr(msg.from_id, "user_id") else msg.peer_id.channel_id
+                    inviter = await c.get_users(inviter_id)
+                    inviter_mention = f"[{inviter.first_name or 'User'}](tg://user?id={inviter.id})"
+                    caption = f"📞 **ᴍʏ ᴠᴄ ɪɴᴠɪᴛᴀᴛɪᴏɴ ᴀʟᴇʀᴛ** 📞\n\n⚡ {inviter_mention} ɴᴇ ᴍᴜᴊʜᴇ **ᴠᴏɪᴄᴇ ᴄʜᴀᴛ** ᴍᴇ ɪɴᴠɪᴛᴇ ᴋɪʏᴀ ʜᴀɪ! 😍\n🚀 ᴄᴏᴍɪɴɢ ɪɴ sᴇᴄᴏɴᴅs... ʟᴇᴛ's ʀᴏᴄᴋ ᴛʜᴇ ᴠᴄ! 🎵"
+                    await c.send_message(msg.peer_id.chat_id, caption)
+                except Exception: pass
+    except Exception: pass
+
+# --- ADVANCED ADDED MODULAR PLUGINS ---
+
+# AFK COMMAND
 async def afk_cmd(c, m):
     reason = m.text.split(None, 1)[1] if len(m.command) > 1 else "Busy right now."
     afk_users[c.me.id] = {"reason": reason, "time": time.time()}
-    await m.edit_text(f"💤 **I am going AFK!**\nReason: `{reason}`")
+    try: await m.edit_text(f"💤 **I am going AFK!**\nReason: `{reason}`")
+    except Exception: pass
 
+# AFK PROCESS MONITOR
 async def afk_watcher_handler(c, m):
     uid = c.me.id
-    
-    # Check if user is back
     if uid in afk_users and m.from_user and m.from_user.id == uid:
         afk_duration = get_readable_time(int(time.time() - afk_users[uid]["time"]))
         del afk_users[uid]
-        await m.reply_text(f"☀️ **I am back online!**\nWas away for: `{afk_duration}`", delete_after=5)
+        try: await m.reply_text(f"☀️ **I am back online!**\nWas away for: `{afk_duration}`")
+        except Exception: pass
         return
 
-    # Trigger reply when tagged or mentioned while AFK
     if uid in afk_users and (m.mentioned or (m.reply_to_message and m.reply_to_message.from_user and m.reply_to_message.from_user.id == uid)):
         reason = afk_users[uid]["reason"]
         afk_duration = get_readable_time(int(time.time() - afk_users[uid]["time"]))
-        await m.reply_text(f"🔒 **User is currently Offline / Busy.**\n⏳ **Away since:** `{afk_duration}`\n📝 **Reason:** `{reason}`")
+        try: await m.reply_text(f"🔒 **User is currently Offline / Busy.**\n⏳ **Away since:** `{afk_duration}`\n📝 **Reason:** `{reason}`")
+        except Exception: pass
 
-# 2. CLONING SYSTEM
+# CLONING SYSTEM
 async def clone_cmd(c, m):
-    if len(m.command) < 2:
-        return await m.edit_text("❌ **Usage:** `.clone @username` or reply to a user.")
+    if len(m.command) < 2 and not m.reply_to_message:
+        try: return await m.edit_text("❌ **Usage:** `.clone @username` or reply to a user.")
+        except Exception: return
     
-    target = m.command[1]
-    status = await m.edit_text("🔄 **Cloning identity... Please wait.**")
+    target = m.command[1] if len(m.command) > 1 else m.reply_to_message.from_user.id
+    try: status = await m.edit_text("🔄 **Cloning identity... Please wait.**")
+    except Exception: return
     
     try:
         user = await c.get_users(target)
-        # Fetching basic info
         first_name = user.first_name or ""
         last_name = user.last_name or ""
         full_name = f"{first_name} {last_name}".strip()
-        bio = (await c.get_chat(user.id)).bio or ""
         
-        # Profile Picture Cloning
+        try: bio = (await c.get_chat(user.id)).bio or ""
+        except Exception: bio = ""
+        
         photos = [p async for p in c.get_chat_photos(user.id, limit=1)]
         if photos:
-            photo_file = await c.download_media(photos[0].file_id)
-            await c.set_profile_photo(photo=photo_file)
-            if os.path.exists(photo_file):
-                os.remove(photo_file)
+            try:
+                photo_file = await c.download_media(photos[0].file_id)
+                await c.set_profile_photo(photo=photo_file)
+                if os.path.exists(photo_file): os.remove(photo_file)
+            except Exception: pass
                 
-        # Updating Name & Bio
         await c.update_profile(first_name=first_name, last_name=last_name, bio=bio)
         await status.edit(f"✅ **Successfully Cloned:** [{full_name}](tg://user?id={user.id})")
     except Exception as e:
         await status.edit(f"❌ **Cloning Failed:** `{e}`")
 
-# 3. PM GUARD (INBOX PROTECTOR)
+# PM GUARD INBOX PROTECTOR
 async def pm_guard_handler(c, m):
     if m.chat.type != types.ChatType.PRIVATE or m.from_user.is_bot or m.from_user.id == c.me.id:
         return
         
-    # Skip checking for contacts or approved chats
     try:
         peer = await c.get_chat(m.chat.id)
-        if peer.status in ["creator", "administrator"] or m.from_user.is_contact:
-            return
-    except Exception:
-        pass
+        if peer.status in ["creator", "administrator"] or m.from_user.is_contact: return
+    except Exception: pass
         
     ubot_id = c.me.id
     stranger_id = m.from_user.id
     
-    if ubot_id not in pm_guard_data:
-        pm_guard_data[ubot_id] = {}
-        
-    if stranger_id not in pm_guard_data[ubot_id]:
-        pm_guard_data[ubot_id][stranger_id] = 0
+    if ubot_id not in pm_guard_data: pm_guard_data[ubot_id] = {}
+    if stranger_id not in pm_guard_data[ubot_id]: pm_guard_data[ubot_id][stranger_id] = 0
         
     pm_guard_data[ubot_id][stranger_id] += 1
     warn_count = pm_guard_data[ubot_id][stranger_id]
     
     if warn_count >= 4:
-        await m.reply_text("🚨 **Spam detected! You have been blocked automatically by PM Guard.**")
-        await c.block_user(stranger_id)
+        try:
+            await m.reply_text("🚨 **Spam detected! You have been blocked automatically by PM Guard.**")
+            await c.block_user(stranger_id)
+        except Exception: pass
         del pm_guard_data[ubot_id][stranger_id]
     else:
-        await m.reply_text(
-            f"⚠️ **PM Guard Active!**\nHello {m.from_user.mention}, please wait for the owner to approve you. Do not spam.\n"
-            f"🚫 **Warning:** `{warn_count}/4` before automatic block."
-        )
+        try:
+            await m.reply_text(
+                f"⚠️ **PM Guard Active!**\nHello {m.from_user.mention}, please wait for the owner to approve you. Do not spam.\n"
+                f"🚫 **Warning:** `{warn_count}/4` before automatic block."
+            )
+        except Exception: pass
 
 def register_ubot_handlers(ubot):
     ubot.add_handler(handlers.MessageHandler(alive_cmd, filters.command("alive", ".") & filters.me))
