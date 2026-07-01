@@ -173,15 +173,13 @@ async def tagall_cmd(c, m):
                 await c.send_message(m.chat.id, f"{input_text}\n\n{mention}")
                 msg_counter += 1
                 
-                # Fixed 2 sec gap between normal messages, 5 sec pause after every 3rd message
                 if msg_counter % 3 == 0:
                     await asyncio.sleep(5.0)
                 else:
                     await asyncio.sleep(2.0)
                     
             except errors.FloodWait as e: await asyncio.sleep(e.value + 2)
-            except (ValueError, Exception) as e:
-                if "Peer id invalid" in str(e): continue
+            except Exception: pass
     except Exception: pass
 
 async def onetag_cmd(c, m):
@@ -201,15 +199,13 @@ async def onetag_cmd(c, m):
                 await c.send_message(m.chat.id, msg)
                 msg_counter += 1
                 
-                # Fixed 2 sec gap between normal messages, 5 sec pause after every 3rd message
                 if msg_counter % 3 == 0:
                     await asyncio.sleep(5.0)
                 else:
                     await asyncio.sleep(2.0)
                     
             except errors.FloodWait as e: await asyncio.sleep(e.value + 2)
-            except (ValueError, Exception) as e:
-                if "Peer id invalid" in str(e): continue
+            except Exception: pass
     except Exception: pass
 
 async def raid_cmd(c, m):
@@ -234,22 +230,20 @@ async def raid_cmd(c, m):
             await c.send_message(chat_id=m.chat.id, text=random.choice(ABUSE_RAIDS), reply_to_message_id=reply_to_id)
             msg_counter += 1
             
-            # Fixed 2 sec gap between normal messages, 5 sec pause after every 3rd message
             if msg_counter % 3 == 0:
                 await asyncio.sleep(5.0)
             else:
                 await asyncio.sleep(2.0)
                 
         except errors.FloodWait as e: await asyncio.sleep(e.value + 2)
-        except (ValueError, Exception) as e:
-            if "Peer id invalid" in str(e): continue
+        except Exception: pass
 
 async def clone_cmd(c, m):
     if len(m.command) < 2 and not m.reply_to_message:
         try: return await m.edit_text("❌ **ᴜsᴀɢᴇ:** `.clone @username` ᴏʀ ʀᴇᴘʟʏ.")
         except Exception: return
     target = m.command[1] if len(m.command) > 1 else m.reply_to_message.from_user.id
-    try: status = await m.edit_text("🔄 **<b><b>ᴄʟᴏɴɪɴɢ...</b></b>**")
+    try: status = await m.edit_text("🔄 **<b><b><b>ᴄʟᴏɴɪɴɢ...</b></b></b>**")
     except Exception: return
     try:
         user = await c.get_users(target)
@@ -265,8 +259,8 @@ async def clone_cmd(c, m):
                 if os.path.exists(photo_file): os.remove(photo_file)
             except Exception: pass
         await c.update_profile(first_name=first_name, last_name=last_name, bio=bio)
-        await status.edit(f"✅ **sᴜᴄᴄᴇsғᴜʟʟʏ <b><b>ᴄʟᴏɴᴇᴅ!</b></b>**")
-    except (ValueError, Exception) as e:
+        await status.edit(f"✅ **sᴜᴄᴄᴇsғᴜʟʟʏ <b><b><b>ᴄʟᴏɴᴇᴅ!</b></b></b>**")
+    except Exception as e:
         await status.edit(f"❌ **ғᴀɪʟᴇᴅ:** `{e}`")
 
 async def stop_cmd(c, m):
@@ -274,7 +268,7 @@ async def stop_cmd(c, m):
     try: await m.edit_text("🚫 **ᴀʟʟ ᴘʀᴏᴄᴇssᴇs sᴛᴏᴘᴘᴇᴅ!**")
     except Exception: pass
 
-# --- SAFE PM GUARD (CATCHES INVALID PEER AND PREVENTS CRASHES) ---
+# --- SAFE PM GUARD ---
 async def pm_guard_handler(c, m):
     if m.chat.type != types.ChatType.PRIVATE or m.from_user.is_bot or m.from_user.id == c.me.id:
         return
@@ -299,13 +293,7 @@ async def pm_guard_handler(c, m):
             try:
                 await m.reply_text(f"🔒 **ʜᴇʟʟᴏ! ᴏᴡɴᴇʀ ᴀʙʜɪ ᴏғғʟɪɴᴇ ʜᴀɪɴ.**\n⚠️ **ᴡᴀʀɴɪɴɢ:** `{warn_count}/5`")
             except Exception: pass
-    except ValueError as e:
-        if "Peer id invalid" in str(e): return
     except Exception: pass
-
-# --- BLOCK RAW TELEGRAM INTERNAL ENGINE UPDATES ---
-async def global_raw_update_protector(c, update, users, chats):
-    raise errors.StopPropagation
 
 def register_ubot_handlers(ubot):
     ubot.add_handler(handlers.MessageHandler(assistant_help_cmd, filters.command("help", ".") & filters.me))
@@ -316,9 +304,8 @@ def register_ubot_handlers(ubot):
     ubot.add_handler(handlers.MessageHandler(clone_cmd, filters.command("clone", ".") & filters.me))
     ubot.add_handler(handlers.MessageHandler(stop_cmd, filters.command("stop", ".") & filters.me))
     ubot.add_handler(handlers.MessageHandler(pm_guard_handler, filters.private & ~filters.me), group=2)
-    ubot.add_handler(handlers.RawUpdateHandler(global_raw_update_protector))
 
-# --- MAIN BOT COMMANDS (BROADCAST & REMOVE ALL + DYNAMIC ROUTING SYSTEM) ---
+# --- MAIN BOT COMMANDS ---
 START_TEXT = "⚡ **ᴡᴇʟᴄᴏᴍᴇ ᴛᴏ ᴄᴏᴅᴇʀɴᴏᴠᴀ ᴘᴀɴᴇʟ** ⚡\n\nʜᴇʏ {mention},\nᴀᴘɴᴀ ᴜsᴇʀʙᴏᴛ ᴍᴀɴᴀɢᴇ ᴋᴀʀɴᴇ ᴋᴇ ʟɪʏᴇ ɴɪᴄʜᴇ ʙᴜᴛᴛᴏɴs ᴜsᴇ ᴋᴀʀᴇɪɴ."
 
 @bot.on_message(filters.command("start") & filters.private)
@@ -327,7 +314,7 @@ async def start_handler(c, m):
     if unjoined:
         btn_layout = [[InlineKeyboardButton(f"📥 ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ", url=f"https://t.me/{ch}")] for ch in unjoined]
         btn_layout.append([InlineKeyboardButton("🔄 ᴠᴇʀɪғʏ", callback_data="verify_fsub")])
-        return await m.reply_text("⚠️ **<b><b>ᴘʟᴇᴀsᴇ ᴊᴏɪɴ ᴏᴜʀ ᴄʜᴀɴɴᴇʟs ғɪʀsᴛ:</b></b>**", reply_markup=InlineKeyboardMarkup(btn_layout))
+        return await m.reply_text("⚠️ **<b><b><b>ᴘʟᴇᴀsᴇ ᴊᴏɪɴ ᴏᴜʀ ᴄʜᴀɴɴᴇʟs ғɪʀsᴛ:</b></b></b>**", reply_markup=InlineKeyboardMarkup(btn_layout))
     try: await m.reply_animation(animation=START_VIDEO, caption=START_TEXT.format(mention=m.from_user.mention), reply_markup=main_buttons)
     except Exception: await m.reply_text(START_TEXT.format(mention=m.from_user.mention), reply_markup=main_buttons)
 
@@ -346,7 +333,7 @@ async def broadcast_cmd(c, m):
             await asyncio.sleep(0.3)
         except Exception:
             failed += 1
-    await status.edit(f"✅ **ʙʀᴏᴀᴅᴄᴀsᴛ <b>ᴄᴏᴍᴘʟᴇᴛᴇ適ᴅ!</b>**\n\n🟢 **sᴜᴄᴄᴇss:** `{success}`\n🔴 **ғᴀɪʟᴇᴅ:** `{failed}`")
+    await status.edit(f"✅ **ʙʀᴏᴀᴅᴄᴀsᴛ <b><b>ᴄᴏᴍᴘʟᴇᴛᴇ適ᴅ!</b></b>**\n\n🟢 **sᴜᴄᴄᴇss:** `{success}`\n🔴 **ғᴀɪʟᴇᴅ:** `{failed}`")
 
 @bot.on_message(filters.command("remove_all") & filters.user(OWNER_ID))
 async def remove_all_cmd(c, m):
@@ -356,14 +343,9 @@ async def remove_all_cmd(c, m):
             try: await ubot.stop()
             except Exception: pass
         running_ubots.clear()
-        await m.reply_text("🗑️ **ᴀʟʟ sᴇssɪᴏɴs <b>ʀᴇᴍᴏᴠᴇᴅ ғʀᴏᴍ ᴅᴀᴛᴀʙᴀsᴇ ᴀɴᴅ ᴀʟʟ ᴜsᴇʀʙᴏᴛs sᴛᴏᴘᴘᴇᴅ!</b>**")
+        await m.reply_text("🗑️ **ᴀʟʟ sᴇssɪᴏɴs <b><b>ʀᴇᴍᴏᴠᴇᴅ ғʀᴏᴍ ᴅᴀᴛᴀʙᴀsᴇ ᴀɴᴅ ᴀʟʟ ᴜsᴇʀʙᴏᴛs sᴛᴏᴘᴘᴇᴅ!</b></b>**")
     except Exception as e:
-        await m.reply_text(f"❌ **<b>ᴇʀʀᴏʀ:</b>** `{e}`")
-
-# --- DYNAMIC ROUTING & AUTO UPDATE AUTO-STARTUP SYSTEM ---
-async def dynamic_routing_updater():
-    while True:
-        await asyncio.sleep(300)
+        await m.reply_text(f"❌ **<b><b>ᴇʀʀᴏʀ:</b></b>** `{e}`")
 
 @bot.on_callback_query()
 async def handle_callbacks(c, q):
@@ -389,7 +371,7 @@ async def handle_steps(c, m):
             await temp_c.connect()
             code = await temp_c.send_code(text)
             user_data[uid].update({"client": temp_c, "hash": code.phone_code_hash})
-            await m.reply_text("📩 **<b>ᴇɴᴛᴇʀ ᴏᴛᴘ ᴡɪᴛʜ sᴘᴀᴄᴇs (ᴇ.ɢ. `1 2 3 4 5`):</b>**")
+            await m.reply_text("📩 **<b><b>ᴇɴᴛᴇʀ ᴏᴛᴘ ᴡɪᴛʜ sᴘᴀᴄᴇs (ᴇ.ɢ. `1 2 3 4 5`):</b></b>**")
         except Exception as e: await m.reply_text(f"❌ `{e}`")
     elif " " in text and text.replace(" ", "").isdigit() and uid in user_data and "hash" in user_data[uid]:
         try:
@@ -397,7 +379,7 @@ async def handle_steps(c, m):
             await finalize_login(c, m, uid)
         except errors.SessionPasswordNeeded:
             user_data[uid].update({"step": "password"})
-            await m.reply_text("🔐 **<b>ᴇɴᴛᴇʀ ᴛᴡᴏ-sᴛᴇᴘ ᴘᴀssᴡᴏʀᴅ:</b>**")
+            await m.reply_text("🔐 **<b><b>ᴇɴᴛᴇʀ ᴛᴡᴏ-sᴛᴇᴘ ᴘᴀssᴡᴏʀᴅ:</b></b>**")
         except Exception as e: await m.reply_text(f"❌ `{e}`")
     elif uid in user_data and user_data[uid].get("step") == "password":
         try:
@@ -412,12 +394,11 @@ async def finalize_login(c, m, uid):
     register_ubot_handlers(ubot)
     await ubot.start()
     running_ubots[uid] = ubot
-    await bot.send_message(uid, "🎉 **sᴜᴄᴄᴇsғᴜʟʟʏ <b>ʟᴏɢɪɴ! ʏᴏᴜʀ ᴜsᴇʀʙᴏᴛ ɪs ɴᴏᴡ ᴀᴄᴛɪᴠᴇ.</b>**")
+    await bot.send_message(uid, "🎉 **sᴜᴄᴄᴇsғᴜʟʟʏ <b><b>ʟᴏɢɪɴ! ʏᴏᴜʀ ᴜsᴇʀʙᴏᴛ ɪs ɴᴏᴡ ᴀᴄᴛɪᴠᴇ.</b></b>**")
     if uid in user_data: del user_data[uid]
 
 async def start_services():
     await bot.start()
-    asyncio.create_task(dynamic_routing_updater())
     saved_sessions = load_local_sessions()
     for u_id, string in saved_sessions.items():
         try:
