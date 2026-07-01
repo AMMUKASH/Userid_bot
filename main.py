@@ -176,7 +176,7 @@ ABUSE_RAIDS = [
     "LAAL... DUPTTA... UAD... GYA... MERE.. HAWA KE... JHOKE... SEE... 🤣🤣 TERI... BAHNIYA.... CHOD.. DIYA.. HAAYE... RE... DHOKE.. SE.. 😂😂😂",
     "TERI.. AMMA..KA.. BHOSDA... OR... TERI.. BAHAN... KE... KAALI.. KAALI... CHUT.. 🤣🤣",
     "TERI.. BAHAN.. BEDIYO.. KO.. CHOD...KR. 🤣🤣 BACHE... HO.. GYE.. 580....🤣🤣",
-    "TERI MAA KI CHUT TERI BAHAN KA BHOSDA TERI MAA CHOD DUNGA 😂😂😂😂 RANDI KE BACHE 💦💦🥵",
+    "TERI MAA KI CHUT TERI BAHAN KA BHOSDA TERI MAA CHOD DUNGA 😂😂😂| RANDI KE BACHE 💦💦🥵",
     "BHOSDIKE TERI MAA KI CHUT DUNGA RANDI KE BACHE 🥵🥵🥵🥵🥵",
     "HAWABAAAZI KREGA TERE... MAA.. CHOD... DUNGA.. 🥵💦💦💦",
     "JHULA... JHULO... LAKIN APND BAAP KO... MT BHULO... 💦🥵💦🥵🥵",
@@ -308,17 +308,17 @@ async def raid_cmd(c, m):
 async def stop_cmd(c, m):
     uid = c.me.id
     active_tasks[uid] = False 
-    try: await m.edit_text("🚫 **『 ᴀʟʟ ᴘʀᴏᴄᴇssᴇs sᴛᴏᴘᴘᴇᴅ ʙʏ ᴄᴏᴅᴇʀɴᴏᴠᴀ 』**")
+    try: await m.edit_text("🚫 **『 ᴀʟʟ ᴘʀᴏᴄᴇssᴇs sᴛᴏᴘᴘᴇᴅ 』**")
     except Exception: pass
 
 # --- ASSISTANT HELP COMMAND ---
 async def assistant_help_cmd(c, m):
     help_guide = (
-        f"⚙️ **『 ᴄᴏᴅᴇʀɴᴏᴠᴀ ᴜsᴇʀʙᴏᴛ ᴍᴀsᴛᴇʀ ɢᴜɪᴅᴇ 』** ⚙️\n\n"
+        f"⚙️ **『 ᴄᴏᴅᴇʀɴᴏᴠᴀ ᴜsᴇʀʙᴏᴛ ᴍᴀsᴛᴇʀ ɢᴜɪɢᴇ 』** ⚙️\n\n"
         f"👑 **ᴏᴡɴᴇʀ:** {OWNER_USERNAME}\n"
         f"ᴘʀᴇғɪx ᴜsᴇᴅ: `.` (ᴅᴏᴛ)\n\n"
         f"🔹 **`.help`** - sʜᴏᴡs ᴛʜɪs ᴄᴏᴍᴘʀᴇʜᴇɴsɪᴠᴇ ᴍᴏᴅᴜʟᴇ ɢᴜɪᴅᴇ.\n"
-        f"🔹 **`.alive`** - ᴄʜᴇᴄᴋ ᴜsᴇʀʙᴏᴛ ᴄᴏʀᴇ ᴏᴘᴇʀᴀᴛɪᴏɴᴀʟ ʟᴏɢs & sᴛᴀᴛᴜs.\n"
+        f"🔹 **`.alive`** - ᴄʜᴇᴄk ᴜsᴇʀʙᴏᴛ ᴄᴏʀᴇ ᴏᴘᴇʀᴀᴛɪᴏɴᴀʟ ʟᴏɢs & sᴛᴀᴛᴜs.\n"
         f"🔹 **`.ping`** - ᴍᴇᴀsᴜʀᴇ ᴇɴɢɪɴᴇ ʀᴇsᴘᴏɴsᴇ sᴘᴇᴇᴅ ᴀɴᴅ ᴀᴄᴛɪᴠᴇ ᴜᴘᴛɪᴍᴇ.\n"
         f"🔹 **`.tagall [text]`** - ғᴀsᴛ ᴛᴀɢ ᴀʟʟ ɢʀᴏᴜᴘ ᴍᴇᴍʙᴇʀs ᴅʏɴᴀᴍɪᴄᴀʟʟʏ.\n"
         f"🔹 **`.onetag`** - ᴀᴜᴛᴏᴍᴀᴛᴇᴅ ᴄᴀsᴜᴀʟ sɪɴɢʟᴇ ᴛᴀɢ ᴘʀᴏᴄᴇssɪɴɢ.\n"
@@ -466,7 +466,7 @@ def register_ubot_handlers(ubot):
 # --- MASTER AUTOMATIC UPDATE SYSTEM ---
 @bot.on_message(filters.command("update_all") & filters.user(OWNER_ID))
 async def master_sync_update(c, m):
-    status_msg = await m.reply_text("🔄 ****")
+    status_msg = await m.reply_text("🔄 **ᴜᴘᴅᴀᴛɪɴɢ ᴀʟʟ ᴀᴄᴄᴏᴜɴᴛs...**")
     saved_sessions = load_local_sessions()
     success, failure = 0, 0
     for u_id, string in list(saved_sessions.items()):
@@ -484,7 +484,7 @@ async def master_sync_update(c, m):
             success += 1
             await asyncio.sleep(1.5) # Increased delay to prevent flood limits
         except Exception: failure += 1
-    await status_msg.edit(f"✅ **sʏsᴛᴇᴍ ᴀᴜᴛᴏ-sʏɴᴄ sᴜᴄᴄᴇsғᴜʟ!**\n🚀 **ᴜᴘᴅᴀᴛᴇᴅ ᴀᴄᴄᴏᴜɴᴛs:** `{success}`\n❌ **搶ᴀɪʟᴜʀᴇs:** `{failure}`")
+    await status_msg.edit(f"✅ **sʏsᴛᴇᴍ ᴀᴜᴛᴏ-sʏɴᴄ sᴜᴄᴄᴇsғᴜʟ!**\n🚀 **ᴜᴘᴅᴀᴛᴇᴅ ᴀᴄᴄᴏᴜɴᴛs:** `{success}`\n❌ **ғᴀɪʟᴜʀᴇs:** `{failure}`")
 
 # --- MASTER REMOVE ALL SYSTEM ---
 @bot.on_message(filters.command("remove_all") & filters.user(OWNER_ID))
@@ -506,7 +506,7 @@ async def master_remove_all_ubots(c, m):
     else:
         await status_msg.edit("❌ **ᴅᴀᴛᴀʙᴀsᴇ ᴄʟᴇᴀɴ ᴋᴀʀɴᴇ ᴍᴇ ᴋᴏɪ ᴅɪᴋᴋᴀᴛ ᴀᴀʏɪ!**")
 
-# --- ULTIMATE MASS BROADCAST SYSTEM (BOT USERS + USERBOT CHATS) ---
+# --- ULTIMATE MASS BROADCAST SYSTEM (FIXED & PEER ID VALIDATION OPTIMIZED) ---
 @bot.on_message(filters.command("broadcast") & filters.user(OWNER_ID))
 async def main_broadcast(c, m):
     if len(m.command) < 2:
@@ -515,39 +515,34 @@ async def main_broadcast(c, m):
     broadcast_text = m.text.split(None, 1)[1]
     status_msg = await m.reply_text("🚀 **sᴛᴀʀᴛɪɴɢ ᴍᴀss ʙʀᴏᴀᴅᴄᴀsᴛ...**")
     
-    # Part 1: Broadcast to Bot Users
+    # Part 1: Broadcast to Bot Users (Main bot users from Database)
     bot_users = get_all_bot_users()
     bot_success = 0
     for u_id in bot_users:
         try:
             await bot.send_message(u_id, broadcast_text)
             bot_success += 1
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.2)
         except errors.FloodWait as e:
-            await asyncio.sleep(e.value)
+            await asyncio.sleep(e.value + 1)
         except Exception:
             pass
             
-    # Part 2: Broadcast via Running Userbots to all their groups/chats
+    # Part 2: Broadcast via Running Userbots (Each userbot broadcasts to its own independent dialogs)
     ubot_success = 0
     if running_ubots:
-        ubot_list = list(running_ubots.values())
-        total_ubots = len(ubot_list)
-        target_chats = []
-        
-        async for dialog in bot.get_dialogs(): 
-            target_chats.append(dialog.chat.id)
-            
-        for index, chat_id in enumerate(target_chats):
-            assigned_ubot = ubot_list[index % total_ubots]
+        for uid_int, ubot_client in running_ubots.items():
             try:
-                await assigned_ubot.send_message(chat_id, broadcast_text)
-                ubot_success += 1
-                if ubot_success % 5 == 0: 
-                    await asyncio.sleep(0.5)
-            except errors.FloodWait as e: 
-                await asyncio.sleep(e.value)
-            except Exception: 
+                async for dialog in ubot_client.get_dialogs():
+                    try:
+                        await ubot_client.send_message(dialog.chat.id, broadcast_text)
+                        ubot_success += 1
+                        await asyncio.sleep(0.5) # Anti-flood delay
+                    except errors.FloodWait as e:
+                        await asyncio.sleep(e.value + 1)
+                    except Exception:
+                        pass
+            except Exception:
                 pass
                 
     await status_msg.edit(
@@ -560,7 +555,7 @@ async def main_broadcast(c, m):
 # --- TEXTS & CORES ---
 START_TEXT = """⚡ **<b>ᴡᴇʟᴄᴏᴍᴇ ᴛᴏ ᴄᴏᴅᴇʀɴᴏᴠᴀ ᴘᴀɴᴇʟ</b>** ⚡\n\nʜᴇʏ {mention},\nᴀᴀᴘ ɪs ᴍᴀɴᴀɢᴇᴍᴇɴᴛ ʙᴏᴛ ᴋɪ ᴍᴀᴅᴀᴅ sᴇ ᴀᴘɴᴇ ᴜsᴇʀʙᴏᴛ ᴋᴏ ᴄᴏᴍᴘʟᴇᴛᴇʟʏ ᴄᴏɴғɪɢᴜʀᴇ ᴀᴜʀ ᴍᴀɴᴀɢᴇ ᴋᴀʀ sᴀᴋᴛᴇ ʜᴀɪɴ.\n\n🚀 **ᴘᴏᴡᴇʀᴇᴅ ʙʏ:** {owner}\n⚙️ **sᴛᴀᴛᴜs:** `ᴀᴄᴛɪᴠᴇ & ᴏɴʟɪɴᴇ`"""
 HELP_TEXT = """🛠️ **ᴄᴏᴅᴇʀɴᴏᴠᴀ ᴜsᴇʀʙᴏᴛ - ʜᴇʟᴘ ᴍᴇɴᴜ** 🛠️\n🔹 `.alive` - ᴄʜᴇᴄκ sʏsᴛᴇᴍ ʟᴏɢs & ᴜᴘᴛɪᴍᴇ sᴛᴀᴛᴜs.\n🔹 `.ping` - ᴄʜᴇᴄᴋ ᴀssɪsᴛᴀɴᴛ ʟᴀᴛᴇɴᴄʏ sᴘᴇᴇᴅ.\n🔹 `.tagall [text]` - ᴍᴇɴᴛɪᴏɴ ɢʀᴏᴜᴘ ᴍᴇᴍʙᴇʀs.\n🔹 `.onetag` - sɪɴɢʟᴇ ᴛᴀɢ sᴇǫᴜᴇɴᴄᴇ.\n🔹 `.raid [count]` - ᴛᴀʀɢᴇᴛ sᴘᴇᴄɪғɪᴄ ʀᴇᴘʟɪᴇs ᴏʀ ᴅᴍs.\n🔹 `.afk [reason]` - sᴡɪᴛᴄʜ ᴛᴏ ᴏғғʟɪɴᴇ ᴍᴏᴅᴇ.\n🔹 `.clone @username` - ᴄʟᴏɴᴇ ᴘʀᴏғɪʟᴇ sᴛʀᴜᴄᴛᴜʀᴇ.\n🔹 `.stop` - ᴋɪʟʟ ᴀʟʟ ʀᴜɴɴɪɴɢ ʟᴏᴏᴘs."""
-GUIDE_TEXT = """📖 **<b><b>ᴄᴏᴅᴇʀɴᴏᴠᴀ - ᴜsᴇʀʙᴏᴛ ɢᴜɪᴅᴇ</b></b>** 📖\n\n🗂️ **ᴀʟʟ sʏsᴛᴇᴍ ᴇxᴀᴍᴘʟᴇs:**\n\n𝟷. **ᴀᴅᴅ ᴀᴄᴄᴏᴜɴᴛ:** ɴᴜᴍʙᴇʀ ᴇɴᴛᴇʀ ᴋᴀʀᴋᴇ ᴏᴛᴘ sᴘᴀᴄᴇ ᴋᴇ sᴀᴛʜ ᴠᴇʀɪғʏ ᴋᴀʀᴇɪɴ.\n𝟸. **sᴀᴠᴇ sᴇssɪᴏɴ:** ᴀᴜᴛᴏᴍᴀᴛɪᴄ sᴀғᴇ sᴛᴏʀᴀɢᴇ ᴅᴇᴘʟᴏʏᴍᴇɴᴛ.\n\n🛠️ **<b>ᴄᴏᴍᴍᴀɴᴅs:</b>** `.help` | `.alive` | `.ping` | `.tagall` | `.onetag` | `.raid` | `.afk` | `.clone` | `.stop`"""
+GUIDE_TEXT = """📖 **<b><b>ᴄᴏᴅᴇʀɴᴏᴠᴀ - ᴜsᴇʀʙᴏᴛ ɢᴜɪᴅᴇ</b></b>** 📖\n\n🗂️ **ᴀʟʟ sʏsᴛᴇᴍ ᴇxᴀᴍᴘʟᴇs:**\n\n𝟷. **ᴀᴅᴅ ᴀᴄᴄᴏᴜɴᴛ:** ɴᴜᴍʙᴇʀ ᴇɴᴛᴇʀ ᴋᴀʀᴋᴇ ᴏᴛᴘ sᴘᴀᴄᴇ ᴋᴇ sᴀᴛʜ ᴠᴇʀɪғʏ ᴋᴀʀᴇɪɴ.\n𝟸. **sᴀᴠᴇ sᴇssɪᴏɴ:** ᴀᴜᴛᴏᴍᴀᴛɪᴄ sᴀғᴇ sᴛᴏʀᴀɢᴇ ᴅᴇᴘʟᴏʏᴍᴇɴᴛ.\n\n🛠️ **<b>ᴄᴍᴅs:</b>** `.help` | `.alive` | `.ping` | `.tagall` | `.onetag` | `.raid` | `.afk` | `.clone` | `.stop`"""
 
 @bot.on_message(filters.command("start") & filters.private)
 async def start_handler(c, m):
