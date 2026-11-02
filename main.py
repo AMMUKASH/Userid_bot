@@ -100,7 +100,7 @@ ABUSE_RAIDS = [
     "EK DAAL PE.... CHAR... KABUTAR... 😁 CHARO MANGE DAANA... 😂😂😂😂",
     "TERI... DADADI.. TANG... UTHAYE... 😂 OR.. CHODE.. MERE.. NANA... 😂😂😂",
     "LAAL... DUPTTA... UAD... GYA... MERE.. HAWA KE... JHOKE... SEE... 🤣🤣 TERI... BAHNIYA.... CHOD.. DIYA.. HAAYE... RE... DHOKE.. SE.. 😂😂😂",
-    "TERI.. AMMA..KA.. BHOSDA... OR... TERI.. BAHAN... KE... KAALI.. KAALI... CHUT.. 🤣🤣",
+    "TERI.. AMMA..KA.. BHOSDA... OR... TERI.. BAHAN... KE... KAALI.. KAALI.. CHUT.. 🤣🤣",
     "TERI.. BAHAN.. BEDIYO.. KO.. CHOD...KR. 🤣🤣 BACHE... HO.. GYE.. 580....🤣🤣",
     "TERI MAA KI CHUT TERI BAHAN KA BHOSDA TERI MAA CHOD DUNGA 😂😂😂| RANDI KE BACHE 💦💦🥵",
     "BHOSDIKE TERI MAA KI CHUT DUNGA RANDI KE BACHE 🥵🥵🥵🥵🥵",
@@ -243,7 +243,7 @@ async def clone_cmd(c, m):
         try: return await m.edit_text("❌ **ᴜsᴀɢᴇ:** `.clone @username` ᴏʀ ʀᴇᴘʟʏ.")
         except Exception: return
     target = m.command[1] if len(m.command) > 1 else m.reply_to_message.from_user.id
-    try: status = await m.edit_text("🔄 **<b><b><b>ᴄʟᴏɴɪɴɢ...</b></b></b>**")
+    try: status = await m.edit_text("🔄 **ᴄʟᴏɴɪɴɢ...**")
     except Exception: return
     try:
         user = await c.get_users(target)
@@ -259,7 +259,7 @@ async def clone_cmd(c, m):
                 if os.path.exists(photo_file): os.remove(photo_file)
             except Exception: pass
         await c.update_profile(first_name=first_name, last_name=last_name, bio=bio)
-        await status.edit(f"✅ **sᴜᴄᴄᴇsғᴜʟʟʏ <b><b><b>ᴄʟᴏɴᴇᴅ!</b></b></b>**")
+        await status.edit("✅ **sᴜᴄᴄᴇsғᴜʟʟʏ ᴄʟᴏɴᴇᴅ!**")
     except Exception as e:
         await status.edit(f"❌ **ғᴀɪʟᴇᴅ:** `{e}`")
 
@@ -295,9 +295,8 @@ async def pm_guard_handler(c, m):
             except Exception: pass
     except Exception: pass
 
-# --- GLOBAL CRASH SHIELD (Bypasses Pyrogram's Internal Raw Bugs) ---
 async def global_catch_all_updates(c, update, users, chats):
-    pass # Background me aane waale invalid peers ko ignore karega
+    pass
 
 def register_ubot_handlers(ubot):
     ubot.add_handler(handlers.MessageHandler(assistant_help_cmd, filters.command("help", ".") & filters.me))
@@ -308,7 +307,7 @@ def register_ubot_handlers(ubot):
     ubot.add_handler(handlers.MessageHandler(clone_cmd, filters.command("clone", ".") & filters.me))
     ubot.add_handler(handlers.MessageHandler(stop_cmd, filters.command("stop", ".") & filters.me))
     ubot.add_handler(handlers.MessageHandler(pm_guard_handler, filters.private & ~filters.me), group=2)
-    ubot.add_handler(handlers.RawUpdateHandler(global_catch_all_updates)) # Crash Shield Active
+    ubot.add_handler(handlers.RawUpdateHandler(global_catch_all_updates))
 
 # --- MAIN BOT COMMANDS ---
 START_TEXT = "⚡ **ᴡᴇʟᴄᴏᴍᴇ ᴛᴏ ᴄᴏᴅᴇʀɴᴏᴠᴀ ᴘᴀɴᴇʟ** ⚡\n\nʜᴇʏ {mention},\nᴀᴘɴᴀ ᴜsᴇʀʙᴏᴛ ᴍᴀɴᴀɢᴇ ᴋᴀʀɴᴇ ᴋᴇ ʟɪʏᴇ ɴɪᴄʜᴇ ʙᴜᴛᴛᴏɴs ᴜsᴇ ᴋᴀʀᴇɪɴ."
@@ -319,7 +318,7 @@ async def start_handler(c, m):
     if unjoined:
         btn_layout = [[InlineKeyboardButton(f"📥 ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ", url=f"https://t.me/{ch}")] for ch in unjoined]
         btn_layout.append([InlineKeyboardButton("🔄 ᴠᴇʀɪғʏ", callback_data="verify_fsub")])
-        return await m.reply_text("⚠️ **<b><b><b>ᴘʟᴇᴀsᴇ ᴊᴏɪɴ ᴏᴜʀ ᴄʜᴀɴɴᴇʟs ғɪʀsᴛ:</b></b></b>**", reply_markup=InlineKeyboardMarkup(btn_layout))
+        return await m.reply_text("⚠️ **ᴘʟᴇᴀsᴇ ᴊᴏɪɴ ᴏᴜʀ ᴄʜᴀɴɴᴇʟs ғɪʀsᴛ:**", reply_markup=InlineKeyboardMarkup(btn_layout))
     try: await m.reply_animation(animation=START_VIDEO, caption=START_TEXT.format(mention=m.from_user.mention), reply_markup=main_buttons)
     except Exception: await m.reply_text(START_TEXT.format(mention=m.from_user.mention), reply_markup=main_buttons)
 
@@ -338,7 +337,7 @@ async def broadcast_cmd(c, m):
             await asyncio.sleep(0.3)
         except Exception:
             failed += 1
-    await status.edit(f"✅ **ʙʀᴏᴀᴅᴄᴀsᴛ <b><b><b>ᴄᴏᴍᴘʟᴇᴛᴇ適ᴅ!</b></b></b>**\n\n🟢 **sᴜᴄᴄᴇss:** `{success}`\n🔴 **ғᴀɪʟᴇᴅ:** `{failed}`")
+    await status.edit(f"✅ **ʙʀᴏᴀᴅᴄᴀsᴛ ᴄᴏᴍᴘʟᴇᴛᴇᴅ!**\n\n🟢 **sᴜᴄᴄᴇss:** `{success}`\n🔴 **ғᴀɪʟᴇᴅ:** `{failed}`")
 
 @bot.on_message(filters.command("remove_all") & filters.user(OWNER_ID))
 async def remove_all_cmd(c, m):
@@ -348,9 +347,9 @@ async def remove_all_cmd(c, m):
             try: await ubot.stop()
             except Exception: pass
         running_ubots.clear()
-        await m.reply_text("🗑️ **ᴀʟʟ sᴇssɪᴏɴs <b><b><b>ʀᴇᴍᴏᴠᴇᴅ ғʀᴏᴍ ᴅᴀᴛᴀʙᴀsᴇ ᴀɴᴅ ᴀʟʟ ᴜsᴇʀʙᴏᴛs sᴛᴏᴘᴘᴇᴅ!</b></b></b>**")
+        await m.reply_text("🗑️ **ᴀʟʟ sᴇssɪᴏɴs ʀᴇᴍᴏᴠᴇᴅ ғʀᴏᴍ ᴅᴀᴛᴀʙᴀsᴇ ᴀɴᴅ ᴀʟʟ ᴜsᴇʀʙᴏᴛs sᴛᴏᴘᴘᴇᴅ!**")
     except Exception as e:
-        await m.reply_text(f"❌ **<b><b><b>ᴇʀʀᴏʀ:</b></b></b>** `{e}`")
+        await m.reply_text(f"❌ **ᴇʀʀᴏʀ:** `{e}`")
 
 @bot.on_callback_query()
 async def handle_callbacks(c, q):
@@ -363,7 +362,7 @@ async def handle_callbacks(c, q):
             await bot.send_message(q.message.chat.id, START_TEXT.format(mention=q.from_user.mention), reply_markup=main_buttons)
     elif q.data == "help_btn": await q.answer("ᴜsᴇ .help ɪɴ ᴄʜᴀᴛs ᴛᴏ sᴇᴇ ᴄᴏᴍᴍᴀɴᴅs!", show_alert=True)
     elif q.data == "add_btn":
-        await q.message.reply_text("📲 **sᴇɴᴅ ʏᴏᴜʀ ᴘʜᴏɴᴇ ɴᴜᴍʙᴇʀ (+𝟿𝟷xxxxxxxxxx):**")
+        await q.message.reply_text("📲 **sᴇɴᴅ ʏᴏᴜʀ ᴘʜᴏɴᴇ ɴᴜᴍʙᴇʀ (+𝟿f91xxxxxxxxxx):**")
         await q.message.delete()
 
 @bot.on_message(filters.text & filters.private & ~filters.bot)
@@ -376,7 +375,7 @@ async def handle_steps(c, m):
             await temp_c.connect()
             code = await temp_c.send_code(text)
             user_data[uid].update({"client": temp_c, "hash": code.phone_code_hash})
-            await m.reply_text("📩 **<b><b><b>ᴇɴᴛᴇʀ ᴏᴛᴘ ᴡɪᴛʜ sᴘᴀᴄᴇs (ᴇ.ɢ. `1 2 3 4 5`):</b></b></b>**")
+            await m.reply_text("📩 **ᴇɴᴛᴇʀ ᴏᴛᴘ ᴡɪᴛʜ sᴘᴀᴄᴇs (ᴇ.ɢ. `1 2 3 4 5`):**")
         except Exception as e: await m.reply_text(f"❌ `{e}`")
     elif " " in text and text.replace(" ", "").isdigit() and uid in user_data and "hash" in user_data[uid]:
         try:
@@ -384,7 +383,7 @@ async def handle_steps(c, m):
             await finalize_login(c, m, uid)
         except errors.SessionPasswordNeeded:
             user_data[uid].update({"step": "password"})
-            await m.reply_text("🔐 **<b><b><b>ᴇɴᴛᴇʀ ᴛᴡᴏ-sᴛᴇᴘ ᴘᴀssᴡᴏʀᴅ:</b></b></b>**")
+            await m.reply_text("🔐 **ᴇɴᴛᴇʀ ᴛᴡᴏ-sᴛᴇᴘ ᴘᴀssᴡᴏʀᴅ:**")
         except Exception as e: await m.reply_text(f"❌ `{e}`")
     elif uid in user_data and user_data[uid].get("step") == "password":
         try:
@@ -399,7 +398,7 @@ async def finalize_login(c, m, uid):
     register_ubot_handlers(ubot)
     await ubot.start()
     running_ubots[uid] = ubot
-    await bot.send_message(uid, "🎉 **sᴜᴄᴄᴇsғᴜʟʟʏ <b><b><b>ʟᴏɢɪɴ! ʏᴏᴜʀ ᴜsᴇʀʙᴏᴛ ɪs ɴᴏᴡ ᴀᴄᴛɪᴠᴇ.</b></b></b>**")
+    await bot.send_message(uid, "🎉 **sᴜᴄᴄᴇsғᴜʟʟʏ ʟᴏɢɪɴ! ʏᴏᴜʀ ᴜsᴇʀʙᴏᴛ ɪs ɴᴏᴡ ᴀᴄᴛɪᴠᴇ.**")
     if uid in user_data: del user_data[uid]
 
 async def start_services():
