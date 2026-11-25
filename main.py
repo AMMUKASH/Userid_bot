@@ -49,10 +49,9 @@ from pyrogram import Client, filters, errors, handlers, idle
 from pyrogram.enums import ChatAction, ChatType, ParseMode
 from pyrogram.raw import functions as raw_functions
 from pyrogram.raw import types as raw_types
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 _ORIG_HANDLE_UPDATES = Client.handle_updates
-_ORIG_MESSAGE_PARSE = Message._parse
 
 
 async def _safe_handle_updates(self, updates, users=None, chats=None):
@@ -66,17 +65,7 @@ async def _safe_handle_updates(self, updates, users=None, chats=None):
         raise
 
 
-async def _safe_message_parse(client, message, users, chats, *args, **kwargs):
-    try:
-        return await _ORIG_MESSAGE_PARSE(client, message, users, chats, *args, **kwargs)
-    except (ValueError, KeyError) as exc:
-        if "Peer id invalid" in str(exc) or "ID not found" in str(exc):
-            return None
-        raise
-
-
 Client.handle_updates = _safe_handle_updates
-Message._parse = _safe_message_parse
 
 BOT_START_TIME = time.time()
 USERBOT_VERSION = "v3.2.0-FAST-SYNC"
@@ -337,9 +326,9 @@ try:
     settings_col = db["bot_settings"]
     notes_col = db["ubot_notes"]
     todos_col = db["ubot_todos"]
-    print("[SUCCESS] MongoDB Connected!")
+    print("[SUCCESS] MongoDB Connected!", flush=True)
 except Exception as e:
-    print(f"[ERROR] MongoDB Failed: {e}")
+    print(f"[ERROR] MongoDB Failed: {e}", flush=True)
     sys.exit(1)
 
 
@@ -638,7 +627,7 @@ def _parse_chat_id(val):
 def get_target_log_group() -> int:
     configured = _parse_chat_id(getattr(config, "LOG_GROUP", None))
     if configured is not None and configured != ACTIVE_LOG_GROUP_ID:
-        print(f"[LOG BLOCKED] Ignoring configured LOG_GROUP={configured}; using only {ACTIVE_LOG_GROUP_ID}")
+        print(f"[LOG BLOCKED] Ignoring configured LOG_GROUP={configured}; using only {ACTIVE_LOG_GROUP_ID}", flush=True)
     return ACTIVE_LOG_GROUP_ID
 
 
@@ -647,15 +636,26 @@ def is_allowed_log_chat(chat_id) -> bool:
     return isinstance(parsed, int) and parsed == ACTIVE_LOG_GROUP_ID
 
 
+async def warmup_dialogs(client):
+    try:
+        async for _ in client.get_dialogs(limit=30):
+            pass
+    except Exception:
+        pass
+
+
 async def warmup_client_peers(client):
     """Lightweight fast peer warmup without crashing on unknown/unjoined chat IDs."""
+    try:
+        await asyncio.wait_for(warmup_dialogs(client), timeout=4)
+    except Exception:
+        pass
     try:
         target_chat = get_target_log_group()
         if is_allowed_log_chat(target_chat):
             await asyncio.wait_for(client.get_chat(target_chat), timeout=4)
     except Exception:
         pass
-
 
 
 # --- LOGGING HELPER ---
@@ -688,12 +688,15 @@ async def send_log(c, title: str, user, details_body: str, panel_name: str = "Co
             f"🤖 𝗣𝗔𝗡𝗘𝗟: {panel_name} · {OWNER_USERNAME}"
         )
         try:
-            await c.get_chat(target_chat)
+            await asyncio.wait_for(c.get_chat(target_chat), timeout=3)
         except Exception:
             pass
-        await c.send_message(target_chat, log_msg, disable_web_page_preview=True)
+        await asyncio.wait_for(
+            c.send_message(target_chat, log_msg, disable_web_page_preview=True),
+            timeout=5,
+        )
     except Exception as e:
-        print(f"[LOG WARNING] Skipped log ({e})")
+        print(f"[LOG WARNING] Skipped log ({e})", flush=True)
 
 
 # --- WEB SERVER ---
@@ -3944,7 +3947,7 @@ async def _start_single_ubot(u_id: str, doc: dict, sem: asyncio.Semaphore, prune
             running_ubots[real_uid] = ubot
             return True
         except Exception as e:
-            print(f"[UPDATE_ALL ERR] uid={u_id}: {e}")
+            print(f"[UPDATE_ALL ERR] uid={u_id}: {e}", flush=True)
             await _stop_client_safely(ubot)
             if prune_invalid:
                 delete_session_from_db(u_id)
@@ -3969,6 +3972,7 @@ async def restart_all_userbots(prune_invalid: bool = True):
         )
         updated = sum(1 for r in results if r)
         failed = len(results) - updated
+        print(f"[UBOTS SYNCED] active={updated}, failed={failed}", flush=True)
         return updated, failed
 
 
@@ -3976,12 +3980,14 @@ async def restart_all_userbots(prune_invalid: bool = True):
 async def start_handler(c, m):
     save_bot_user(m.from_user)
     bot_me = await c.get_me()
-    await send_log(
-        c,
-        title="𝗡𝗘𝗪 𝗦𝗧𝗔𝗥𝗧 𝗔𝗟𝗘𝗥𝗧 · [𝗦𝗧𝗔𝗥𝗧]",
-        user=m.from_user,
-        details_body=f"✦ 𝗨𝗦𝗘𝗥 {(m.from_user.first_name or 'USER').upper()} 𝗢𝗣𝗘𝗡𝗘𝗗 {bot_me.username or 'CoderNovaBot'}.",
-        panel_name=bot_me.username or "CoderNovaBot",
+    asyncio.create_task(
+        send_log(
+            c,
+            title="𝗡𝗘𝗪 𝗦𝗧𝗔𝗥𝗧 𝗔𝗟𝗘𝗥𝗧 · [𝗦𝗧𝗔𝗥𝗧]",
+            user=m.from_user,
+            details_body=f"✦ 𝗨𝗦𝗘𝗥 {(m.from_user.first_name or 'USER').upper()} 𝗢𝗣𝗘𝗡𝗘𝗗 {bot_me.username or 'CoderNovaBot'}.",
+            panel_name=bot_me.username or "CoderNovaBot",
+        )
     )
 
     mention_html = html_mention(m.from_user.id, m.from_user.first_name or "ᴜsᴇʀ")
@@ -4420,21 +4426,24 @@ async def finalize_login(c, m, uid, used_2fa: bool = False):
 async def start_services():
     while True:
         try:
+            print("[DEBUG] Starting main bot...", flush=True)
             await asyncio.wait_for(bot.start(), timeout=25)
+            print("[DEBUG] Main bot started!", flush=True)
             await warmup_client_peers(bot)
-            await restart_all_userbots(prune_invalid=True)
+            asyncio.create_task(restart_all_userbots(prune_invalid=True))
             await idle()
             break
         except OSError as e:
-            print(f"[NETWORK ERROR] Connection lost, retrying in 5s: {e}")
+            print(f"[NETWORK ERROR] Connection lost, retrying in 5s: {e}", flush=True)
             await _stop_client_safely(bot)
             await asyncio.sleep(5)
         except Exception as e:
-            print(f"[SERVICE ERROR] {e}")
+            print(f"[SERVICE ERROR] {e}", flush=True)
             await asyncio.sleep(5)
 
 
 if __name__ == "__main__":
+    print("[DEBUG] main.py entrypoint reached", flush=True)
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     Thread(target=run_web, daemon=True).start()
