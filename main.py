@@ -51,6 +51,20 @@ from pyrogram.raw import functions as raw_functions
 from pyrogram.raw import types as raw_types
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+_ORIG_HANDLE_UPDATES = Client.handle_updates
+
+
+async def _safe_handle_updates(self, updates, users, chats):
+    try:
+        return await _ORIG_HANDLE_UPDATES(self, updates, users, chats)
+    except (ValueError, KeyError) as exc:
+        if "Peer id invalid" in str(exc) or "ID not found" in str(exc):
+            return
+        raise
+
+
+Client.handle_updates = _safe_handle_updates
+
 BOT_START_TIME = time.time()
 USERBOT_VERSION = "v3.2.0-FAST-SYNC"
 ACCOUNTS_PER_PAGE = 5
