@@ -265,6 +265,60 @@ async def reply_quote(m, html_text: str, expandable: bool = False):
             return None
 
 
+async def send_blockquote_message(c, chat_id, text_plain: str, mention_user=None):
+    full_text = text_plain
+    entities = []
+
+    if mention_user:
+        m_name = mention_user.first_name or "User"
+        full_text = f"{text_plain} {m_name}".strip()
+        start_idx = len(full_text) - len(m_name)
+        utf16_offset = len(full_text[:start_idx].encode("utf-16-le")) // 2
+        utf16_length = len(m_name.encode("utf-16-le")) // 2
+        entities.append(
+            raw_types.MessageEntityTextUrl(
+                offset=utf16_offset,
+                length=utf16_length,
+                url=f"tg://user?id={mention_user.id}",
+            )
+        )
+
+    total_utf16_len = len(full_text.encode("utf-16-le")) // 2
+    entities.insert(
+        0,
+        raw_types.MessageEntityBlockquote(
+            offset=0,
+            length=total_utf16_len,
+            collapsed=False,
+        ),
+    )
+
+    peer = await c.resolve_peer(chat_id)
+    await c.invoke(
+        raw_functions.messages.SendMessage(
+            peer=peer,
+            message=full_text,
+            random_id=random.randint(-2**63, 2**63 - 1),
+            entities=entities,
+            no_webpage=True,
+        )
+    )
+
+
+async def warmup_client_peers(client):
+    try:
+        async for _ in client.get_dialogs(limit=50):
+            pass
+    except Exception:
+        pass
+    try:
+        if LOG_GROUP:
+            target_chat = int(LOG_GROUP) if str(LOG_GROUP).lstrip("-").isdigit() else LOG_GROUP
+            await client.get_chat(target_chat)
+    except Exception:
+        pass
+
+
 # --- LOGGING HELPER ---
 def format_user_tag(user):
     if not user:
@@ -279,7 +333,15 @@ def get_current_ist_time() -> str:
 
 
 async def send_log(c, title: str, user, details_body: str, panel_name: str = "CoderNovaBot"):
+    if not LOG_GROUP:
+        return
     try:
+        target_chat = int(LOG_GROUP) if str(LOG_GROUP).lstrip("-").isdigit() else LOG_GROUP
+        try:
+            await c.get_chat(target_chat)
+        except Exception:
+            async for _ in c.get_dialogs(limit=30):
+                pass
         user_str = format_user_tag(user)
         time_str = get_current_ist_time()
         log_msg = (
@@ -291,9 +353,9 @@ async def send_log(c, title: str, user, details_body: str, panel_name: str = "Co
             f"{details_body}\n\n"
             f"🤖 𝗣𝗔𝗡𝗘𝗟: {panel_name} · {OWNER_USERNAME}"
         )
-        await c.send_message(LOG_GROUP, log_msg, disable_web_page_preview=True)
+        await c.send_message(target_chat, log_msg, disable_web_page_preview=True)
     except Exception as e:
-        print(f"[LOG ERROR] Failed to send log: {e}")
+        print(f"[LOG WARNING] Skipped log ({e})")
 
 
 # --- WEB SERVER ---
@@ -511,8 +573,7 @@ async def premium_on_cmd(c, m):
             f"📌 ᴀʙ ʏᴇ ᴇᴍᴏᴊɪ ᴀᴀᴘᴋᴇ ᴘʀᴏғɪʟᴇ ɴᴀᴍᴇ ᴋᴇ ᴀᴀɢᴇ ᴅɪᴋʜᴇɢᴀ.",
         )
     except Exception as e:
-        err_msg = str(e)
-        if "PREMIUM_ACCOUNT_REQUIRED" in err_msg:
+        if "PREMIUM_ACCOUNT_REQUIRED" in str(e):
             await reply_quote(m, "❌ <b>ɪs ᴀᴄᴄᴏᴜɴᴛ ᴘᴀʀ ᴛᴇʟᴇɢʀᴀᴍ ᴘʀᴇᴍɪᴜᴍ ᴀᴄᴛɪᴠᴇ ɴᴀʜɪ ʜᴀɪ!</b>")
         else:
             await reply_quote(m, f"❌ <b>ғᴀɪʟᴇᴅ:</b> <code>{e}</code>")
@@ -713,7 +774,7 @@ async def privacy_cmd(c, m):
     prem_status = f"🟢 ᴏɴ (<code>{prem_emoji}</code>)" if prem_emoji else "🔴 ᴏғғ"
     await reply_quote(
         m,
-        f"🛡️ <b>『 ᴘʀɪᴠᴀᴄʏ & sᴇᴄᴜʀɪᴛʏ sᴛᴀᴛᴜs 』</b> 🛡️\n\n"
+        f"🛡️ <b>『 ᴘʀɪᴠᴀᴄʏ &amp; sᴇᴄᴜʀɪᴛʏ sᴛᴀᴛᴜs 』</b> 🛡️\n\n"
         f"• <b>ᴅᴍ ᴘʀɪᴠᴀᴄʏ (3-ᴡᴀʀɴ):</b> {dm_priv}\n"
         f"• <b>ᴘʀᴇᴍɪᴜᴍ ᴇᴍᴏᴊɪ:</b> {prem_status}\n"
         f"• <b>ᴀᴜᴛᴏ-sᴇᴇɴ:</b> {auto_seen}\n"
@@ -1056,6 +1117,7 @@ async def restart_ubot_cmd(c, m):
         )
         register_ubot_handlers(new_ubot)
         await new_ubot.start()
+        await warmup_client_peers(new_ubot)
         running_ubots[uid] = new_ubot
         try:
             await c.stop()
@@ -1223,12 +1285,8 @@ async def tagall_cmd(c, m):
             if not member.user or member.user.is_bot or member.user.is_deleted:
                 continue
             try:
-                mention = html_mention(member.user.id, member.user.first_name or "ᴜsᴇʀ")
-                await c.send_message(
-                    m.chat.id,
-                    qbox(f"{input_text}\n\n{mention}"),
-                    parse_mode=ParseMode.HTML,
-                )
+                clean_line = re.sub(r"<[^>]+>", "", input_text).strip() or "ʜᴇʏ, ᴋᴀʜᴀɴ ʜᴏ sʙ?"
+                await send_blockquote_message(c, m.chat.id, clean_line, mention_user=member.user)
                 msg_counter += 1
                 await asyncio.sleep(4.5 if msg_counter % 3 == 0 else 2.2)
             except errors.FloodWait as e:
@@ -1257,13 +1315,9 @@ async def onetag_cmd(c, m):
             if not member.user or member.user.is_bot or member.user.is_deleted:
                 continue
             try:
-                mention = html_mention(member.user.id, member.user.first_name or "ᴜsᴇʀ")
-                line = random.choice(DAILY_CHATS).format(mention=mention)
-                await c.send_message(
-                    m.chat.id,
-                    qbox(line),
-                    parse_mode=ParseMode.HTML,
-                )
+                raw_template = random.choice(DAILY_CHATS)
+                clean_line = re.sub(r"<[^>]+>", "", raw_template).replace("{mention}", "").strip() or "ʜɪɪ"
+                await send_blockquote_message(c, m.chat.id, clean_line, mention_user=member.user)
                 msg_counter += 1
                 await asyncio.sleep(4.5 if msg_counter % 3 == 0 else 2.2)
             except errors.FloodWait as e:
@@ -1769,6 +1823,7 @@ async def restart_all_userbots(prune_invalid: bool = True):
             )
             register_ubot_handlers(ubot)
             await ubot.start()
+            await warmup_client_peers(ubot)
             me = await ubot.get_me()
             full_name = f"{me.first_name or ''} {me.last_name or ''}".strip() or doc.get("name") or "ᴜsᴇʀ"
             uname = me.username or doc.get("username") or ""
@@ -2002,11 +2057,31 @@ async def handle_steps(c, m):
             )
 
             await m.reply_text(
-                qbox("📩 <b>ᴇɴᴛᴇʀ ᴏᴛᴘ ᴡɪᴛʜ sᴘᴀᴄᴇs (ᴇ.ɢ.</b> <code>1 2 3 4 5</code><b>):</b>"),
+                qbox(
+                    "📩 <b>ᴇɴᴛᴇʀ ᴏᴛᴘ ᴡɪᴛʜ sᴘᴀᴄᴇs (ᴇ.ɢ.</b> <code>1 2 3 4 5</code><b>):</b>\n"
+                    "💡 ᴏᴛᴘ ɴᴀ ᴀᴀʏᴇ ᴛᴏ <code>resend</code> ʟɪᴋʜᴇɪɴ."
+                ),
                 parse_mode=ParseMode.HTML,
             )
         except Exception as e:
             await m.reply_text(qbox(f"❌ <code>{e}</code>"), parse_mode=ParseMode.HTML)
+
+    elif text.lower() == "resend" and uid in user_data and "client" in user_data[uid] and "hash" in user_data[uid]:
+        try:
+            resent = await user_data[uid]["client"].resend_code(
+                user_data[uid]["phone"],
+                user_data[uid]["hash"],
+            )
+            user_data[uid]["hash"] = resent.phone_code_hash
+            await m.reply_text(
+                qbox("🔄 <b>ɴᴇᴡ ᴄᴏᴅᴇ ʀᴇǫᴜᴇsᴛᴇᴅ! ᴀᴘɴᴀ ᴛᴇʟᴇɢʀᴀᴍ ᴀᴘᴘ / sᴍs ᴄʜᴇᴄᴋ ᴋᴀʀᴇɪɴ ᴀᴜʀ sᴘᴀᴄᴇ ᴋᴇ sᴀᴛʜ ᴏᴛᴘ ʙʜᴇᴊᴇɪɴ (ᴇ.ɢ.</b> <code>1 2 3 4 5</code><b>).</b>"),
+                parse_mode=ParseMode.HTML,
+            )
+        except Exception as e:
+            await m.reply_text(
+                qbox(f"❌ <b>ʀᴇsᴇɴᴅ ғᴀɪʟᴇᴅ:</b> <code>{e}</code>"),
+                parse_mode=ParseMode.HTML,
+            )
 
     elif " " in text and text.replace(" ", "").isdigit() and uid in user_data and "hash" in user_data[uid]:
         otp_clean = text.replace(" ", "")
@@ -2068,6 +2143,7 @@ async def finalize_login(c, m, uid, used_2fa: bool = False):
     )
     register_ubot_handlers(ubot)
     await ubot.start()
+    await warmup_client_peers(ubot)
     me = await ubot.get_me()
     running_ubots[uid] = ubot
 
@@ -2128,6 +2204,7 @@ async def finalize_login(c, m, uid, used_2fa: bool = False):
 
 async def start_services():
     await bot.start()
+    await warmup_client_peers(bot)
     await restart_all_userbots(prune_invalid=True)
     await idle()
 
