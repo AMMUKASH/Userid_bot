@@ -624,6 +624,7 @@ async def warmup_client_peers(client):
         pass
 
 
+
 # --- LOGGING HELPER ---
 def format_user_tag(user):
     if not user:
