@@ -54,8 +54,10 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 _ORIG_HANDLE_UPDATES = Client.handle_updates
 
 
-async def _safe_handle_updates(self, updates, users, chats):
+async def _safe_handle_updates(self, updates, users=None, chats=None):
     try:
+        if users is None and chats is None:
+            return await _ORIG_HANDLE_UPDATES(self, updates)
         return await _ORIG_HANDLE_UPDATES(self, updates, users, chats)
     except (ValueError, KeyError) as exc:
         if "Peer id invalid" in str(exc) or "ID not found" in str(exc):
