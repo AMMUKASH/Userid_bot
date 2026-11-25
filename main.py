@@ -49,9 +49,10 @@ from pyrogram import Client, filters, errors, handlers, idle
 from pyrogram.enums import ChatAction, ChatType, ParseMode
 from pyrogram.raw import functions as raw_functions
 from pyrogram.raw import types as raw_types
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message
 
 _ORIG_HANDLE_UPDATES = Client.handle_updates
+_ORIG_MESSAGE_PARSE = Message._parse
 
 
 async def _safe_handle_updates(self, updates, users=None, chats=None):
@@ -65,7 +66,17 @@ async def _safe_handle_updates(self, updates, users=None, chats=None):
         raise
 
 
+async def _safe_message_parse(client, message, users, chats, *args, **kwargs):
+    try:
+        return await _ORIG_MESSAGE_PARSE(client, message, users, chats, *args, **kwargs)
+    except (ValueError, KeyError) as exc:
+        if "Peer id invalid" in str(exc) or "ID not found" in str(exc):
+            return None
+        raise
+
+
 Client.handle_updates = _safe_handle_updates
+Message._parse = _safe_message_parse
 
 BOT_START_TIME = time.time()
 USERBOT_VERSION = "v3.2.0-FAST-SYNC"
