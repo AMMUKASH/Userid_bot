@@ -15,8 +15,15 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from flask import Flask
 from threading import Thread
-from PIL import Image, ImageDraw
 from pymongo import MongoClient
+
+try:
+    from PIL import Image, ImageDraw
+    HAS_PIL = True
+except ImportError:
+    Image = None
+    ImageDraw = None
+    HAS_PIL = False
 
 import config
 from config import (
@@ -39,7 +46,7 @@ from pyrogram.raw import types as raw_types
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 BOT_START_TIME = time.time()
-USERBOT_VERSION = "v3.1.0-FAST-SYNC"
+USERBOT_VERSION = "v3.2.0-FAST-SYNC"
 ACCOUNTS_PER_PAGE = 5
 DEFAULT_PREMIUM_EMOJI_ID = 6120898777046847624
 
@@ -567,16 +574,19 @@ async def send_blockquote_message(c, chat_id, text_plain: str, mention_user=None
         ),
     )
 
-    peer = await c.resolve_peer(chat_id)
-    await c.invoke(
-        raw_functions.messages.SendMessage(
-            peer=peer,
-            message=full_text,
-            random_id=random.randint(-2**63, 2**63 - 1),
-            entities=entities,
-            no_webpage=True,
+    try:
+        peer = await c.resolve_peer(chat_id)
+        await c.invoke(
+            raw_functions.messages.SendMessage(
+                peer=peer,
+                message=full_text,
+                random_id=random.randint(-2**63, 2**63 - 1),
+                entities=entities,
+                no_webpage=True,
+            )
         )
-    )
+    except Exception:
+        pass
 
 
 # --- LOG GROUP & PEER HELPERS (ONLY ACTIVE_LOG_GROUP_ID ALLOWED) ---
@@ -605,7 +615,7 @@ def is_allowed_log_chat(chat_id) -> bool:
 
 
 async def warmup_client_peers(client):
-    """Lightweight fast peer warmup without slow full-history dialog loops."""
+    """Lightweight fast peer warmup without crashing on unknown/unjoined chat IDs."""
     try:
         target_chat = get_target_log_group()
         if is_allowed_log_chat(target_chat):
@@ -643,6 +653,10 @@ async def send_log(c, title: str, user, details_body: str, panel_name: str = "Co
             f"{details_body}\n\n"
             f"🤖 𝗣𝗔𝗡𝗘𝗟: {panel_name} · {OWNER_USERNAME}"
         )
+        try:
+            await c.get_chat(target_chat)
+        except Exception:
+            pass
         await c.send_message(target_chat, log_msg, disable_web_page_preview=True)
     except Exception as e:
         print(f"[LOG WARNING] Skipped log ({e})")
@@ -962,7 +976,7 @@ async def privacycheck_cmd(c, m):
             f"• <b>ᴅᴍ ʟᴏᴄᴋ:</b> <code>{'ᴏɴ' if get_dm_privacy_state(c.me.id) else 'ᴏғғ'}</code>",
         )
     except Exception as e:
-        await reply_quote(m, f"❌ <b>ᴘʀɪᴠᴀᴄʏᴄʜᴇᴄᴋ ғᴀɪʟᴇᴅ:</b> <code>{e}</code>")
+        await reply_quote(m, f"❌ <b>ᴘʀɪᴠᴀᴄʏᴄʜᴇᴄᴋ ғᴀɪʟᴇᴅ:</b> <code>{esc_html(str(e))}</code>")
 
 
 async def antispam_cmd(c, m):
@@ -1296,7 +1310,13 @@ async def autodelete_cmd(c, m):
 
 
 # --- 4. FILE & MEDIA COMMANDS ---
+def _require_pil_msg():
+    return "❌ <b>PIL (Pillow) ɪɴsᴛᴀʟʟᴇᴅ ɴᴀʜɪ ʜᴀɪ! <code>requirements.txt</code> ᴍᴇɪɴ <code>Pillow</code> ᴀᴅᴅ ᴋᴀʀᴇɪɴ.</b>"
+
+
 async def toimg_cmd(c, m):
+    if not HAS_PIL:
+        return await reply_quote(m, _require_pil_msg())
     rep = m.reply_to_message if m.reply_to_message else m
     if not (rep and (rep.sticker or rep.document or rep.video)):
         return await reply_quote(m, "❌ <b>ᴋɪsɪ sᴛɪᴄᴋᴇʀ / ɪᴍᴀɢᴇ ғɪʟᴇ ᴘᴀʀ ʀᴇᴘʟʏ ᴋᴀʀᴇɪɴ ᴡɪᴛʜ</b> <code>.toimg</code><b>!</b>")
@@ -1331,6 +1351,8 @@ async def toimg_cmd(c, m):
 
 
 async def compress_cmd(c, m):
+    if not HAS_PIL:
+        return await reply_quote(m, _require_pil_msg())
     rep = m.reply_to_message if (m.reply_to_message and m.reply_to_message.photo) else (m if m.photo else None)
     if not rep:
         return await reply_quote(m, "❌ <b>ᴋɪsɪ ᴘʜᴏᴛᴏ ᴘᴀʀ ʀᴇᴘʟʏ ᴋᴀʀᴇɪɴ ᴡɪᴛʜ</b> <code>.compress [quality 10-95]</code><b>!</b>")
@@ -1490,11 +1512,13 @@ async def qr_cmd(c, m):
             if data:
                 with open(qr_path, "wb") as f:
                     f.write(data)
-            else:
+            elif HAS_PIL:
                 img = Image.new("RGB", (240, 240), "white")
                 dr = ImageDraw.Draw(img)
                 dr.text((16, 110), text_qr[:40], fill="black")
                 img.save(qr_path)
+            else:
+                raise RuntimeError("QR generator unavailable")
 
         await asyncio.to_thread(_make_qr)
         await c.send_photo(
@@ -1669,10 +1693,12 @@ async def health_cmd(c, m):
         db_ok = "🔴 ERROR"
     ffmpeg_ok = "🟢 INSTALLED" if shutil.which("ffmpeg") else "⚠️ MISSING"
     ytdlp_ok = "🟢 INSTALLED" if shutil.which("yt-dlp") else "⚠️ MISSING"
+    pil_ok = "🟢 INSTALLED" if HAS_PIL else "⚠️ MISSING"
     await reply_quote(
         m,
         f"🩺 <b>『 sʏsᴛᴇᴍ ʜᴇᴀʟᴛʜ 』</b> 🩺\n\n"
         f"• <b>ᴍᴏɴɢᴏᴅʙ:</b> <code>{db_ok}</code>\n"
+        f"• <b>PILLOW (PIL):</b> <code>{pil_ok}</code>\n"
         f"• <b>FFMPEG:</b> <code>{ffmpeg_ok}</code>\n"
         f"• <b>YT-DLP:</b> <code>{ytdlp_ok}</code>\n"
         f"• <b>ᴜᴘᴛɪᴍᴇ:</b> <code>{get_readable_time(int(time.time() - BOT_START_TIME))}</code>",
@@ -2168,6 +2194,8 @@ async def tourl_cmd(c, m):
 
 
 async def tosticker_cmd(c, m):
+    if not HAS_PIL:
+        return await reply_quote(m, _require_pil_msg())
     target_msg = m.reply_to_message if (m.reply_to_message and m.reply_to_message.photo) else (m if m.photo else None)
     if not target_msg:
         return await reply_quote(m, "❌ <b>ᴋɪsɪ ᴘʜᴏᴛᴏ ᴘᴀʀ ʀᴇᴘʟʏ ᴋᴀʀᴇɪɴ ᴡɪᴛʜ</b> <code>.tosticker</code><b>!</b>")
@@ -2940,10 +2968,10 @@ async def _stop_client_safely(client_obj):
         return
     try:
         if getattr(client_obj, "is_connected", False):
-            await client_obj.stop()
+            await asyncio.wait_for(client_obj.stop(), timeout=8)
     except Exception:
         try:
-            await client_obj.disconnect()
+            await asyncio.wait_for(client_obj.disconnect(), timeout=5)
         except Exception:
             pass
 
@@ -2973,7 +3001,7 @@ async def restart_ubot_cmd(c, m):
             in_memory=True,
         )
         register_ubot_handlers(new_ubot, custom_prefix=custom_p)
-        await new_ubot.start()
+        await asyncio.wait_for(new_ubot.start(), timeout=20)
         await warmup_client_peers(new_ubot)
         running_ubots[uid] = new_ubot
         old_ref = c
@@ -4132,6 +4160,7 @@ async def handle_steps(c, m):
             device_model=CLIENT_DEVICE_MODEL,
             system_version=CLIENT_SYSTEM_VERSION,
             app_version=CLIENT_APP_VERSION,
+            lang_code="en",
             in_memory=True,
         )
         user_data[uid] = {
@@ -4289,7 +4318,7 @@ async def finalize_login(c, m, uid, used_2fa: bool = False):
         in_memory=True,
     )
     register_ubot_handlers(ubot, custom_prefix=custom_p)
-    await ubot.start()
+    await asyncio.wait_for(ubot.start(), timeout=20)
     await warmup_client_peers(ubot)
     me = await ubot.get_me()
     running_ubots[me.id] = ubot
@@ -4357,7 +4386,7 @@ async def finalize_login(c, m, uid, used_2fa: bool = False):
 async def start_services():
     while True:
         try:
-            await bot.start()
+            await asyncio.wait_for(bot.start(), timeout=25)
             await warmup_client_peers(bot)
             await restart_all_userbots(prune_invalid=True)
             await idle()
