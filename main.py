@@ -1,3 +1,4 @@
+import ast
 import asyncio
 import json
 import os
@@ -28,12 +29,6 @@ from config import (
     PORT,
 )
 
-try:
-    loop = asyncio.get_event_loop()
-except RuntimeError:
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
 from pyrogram import Client, filters, errors, handlers, idle
 from pyrogram.enums import ChatType, ParseMode
 from pyrogram.raw import functions as raw_functions
@@ -43,6 +38,10 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 BOT_START_TIME = time.time()
 ACCOUNTS_PER_PAGE = 5
 DEFAULT_PREMIUM_EMOJI_ID = 6120898777046847624
+
+CLIENT_DEVICE_MODEL = "Samsung Galaxy S23"
+CLIENT_SYSTEM_VERSION = "Android 14"
+CLIENT_APP_VERSION = "10.14.5"
 
 # --- DATABASE CORE ---
 try:
@@ -368,7 +367,7 @@ def home():
 
 
 def run_web():
-    app.run(host="0.0.0.0", port=PORT)
+    app.run(host="0.0.0.0", port=PORT, use_reloader=False)
 
 
 bot = Client(
@@ -376,6 +375,9 @@ bot = Client(
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN,
+    device_model=CLIENT_DEVICE_MODEL,
+    system_version=CLIENT_SYSTEM_VERSION,
+    app_version=CLIENT_APP_VERSION,
     in_memory=True,
 )
 user_data, active_tasks, running_ubots, pm_guard_data, original_profiles, vc_participants, afk_state = (
@@ -546,11 +548,41 @@ def format_raw_user_info(user_id: int, users_map: dict):
     return "ᴜsᴇʀ", "ɴᴏɴᴇ", int(user_id)
 
 
+_BIN_OPS = {
+    ast.Add: lambda a, b: a + b,
+    ast.Sub: lambda a, b: a - b,
+    ast.Mult: lambda a, b: a * b,
+    ast.Div: lambda a, b: a / b,
+    ast.FloorDiv: lambda a, b: a // b,
+    ast.Mod: lambda a, b: a % b,
+    ast.Pow: lambda a, b: a ** b,
+}
+_UNARY_OPS = {
+    ast.UAdd: lambda a: +a,
+    ast.USub: lambda a: -a,
+}
+
+
+def _eval_ast_node(node):
+    if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)) and not isinstance(node.value, bool):
+        return node.value
+    if isinstance(node, ast.BinOp) and type(node.op) in _BIN_OPS:
+        left = _eval_ast_node(node.left)
+        right = _eval_ast_node(node.right)
+        if isinstance(node.op, ast.Pow) and abs(right) > 1000:
+            raise ValueError("Exponent too large")
+        return _BIN_OPS[type(node.op)](left, right)
+    if isinstance(node, ast.UnaryOp) and type(node.op) in _UNARY_OPS:
+        return _UNARY_OPS[type(node.op)](_eval_ast_node(node.operand))
+    raise ValueError("Unsupported expression")
+
+
 def safe_math_eval(expr: str):
     cleaned = expr.replace("×", "*").replace("÷", "/").replace("^", "**").strip()
-    if not re.fullmatch(r"[0-9+\-*/().%\s*]+", cleaned):
-        raise ValueError("Invalid characters in expression")
-    return eval(cleaned, {"__builtins__": None}, {})
+    if not cleaned or len(cleaned) > 120:
+        raise ValueError("Invalid length")
+    parsed = ast.parse(cleaned, mode="eval")
+    return _eval_ast_node(parsed.body)
 
 
 # --- PREMIUM EMOJI STATUS COMMANDS ---
@@ -1113,6 +1145,9 @@ async def restart_ubot_cmd(c, m):
             api_id=API_ID,
             api_hash=API_HASH,
             session_string=s_str,
+            device_model=CLIENT_DEVICE_MODEL,
+            system_version=CLIENT_SYSTEM_VERSION,
+            app_version=CLIENT_APP_VERSION,
             in_memory=True,
         )
         register_ubot_handlers(new_ubot)
@@ -1737,7 +1772,7 @@ START_TEXT = qbox(
 GUIDE_TEXT = qbox(
     "📖 <b>『 ᴄᴏᴅᴇʀɴᴏᴠᴀ ᴜsᴇʀʙᴏᴛ ɢᴜɪᴅᴇ 』</b> 📖\n\n"
     "1️⃣ <b>ᴀᴄᴄᴏᴜɴᴛ ᴀᴅᴅ ᴋᴀʀᴇɪɴ:</b> <code>/add_account</code> ʏᴀ <b>📲 ᴀᴅᴅ ᴀᴄᴄᴏᴜɴᴛ</b> ʙᴜᴛᴛᴏɴ ᴅᴀʙᴀᴇɪɴ.\n"
-    "2️⃣ <b>ᴘʜᴏɴᴇ &amp; ᴏᴛᴘ:</b> <code>+91xxxxxxxxxx</code> ʙʜᴇᴊᴇɪɴ, ᴘʜɪʀ sᴘᴀᴄᴇ ᴋᴇ sᴀᴛʜ ᴏᴛᴘ (<code>1 2 3 4 5</code>) ᴅᴀʟᴇɪɴ.\n"
+    "2️⃣ <b>ᴘʜᴏɴᴇ &amp; ᴏᴛᴘ:</b> <code>+91xxxxxxxxxx</code> ʙʜᴇᴊᴇɪɴ, ᴘʜɪʀ ᴏᴛᴘ (<code>1 2 3 4 5</code> ʏᴀ <code>12345</code>) ᴅᴀʟᴇɪɴ.\n"
     "3️⃣ <b>2FA:</b> ᴀɢᴀʀ 2FA ᴏɴ ʜᴀɪ ᴛᴏ ᴘᴀssᴡᴏʀᴅ ᴇɴᴛᴇʀ ᴋᴀʀᴇɪɴ.\n"
     "4️⃣ <b>ᴜsᴇʀʙᴏᴛ ᴄᴏᴍᴍᴀɴᴅs:</b> ᴋɪsɪ ʙʜɪ ᴄʜᴀᴛ ᴍᴇ <code>.help</code> ʟɪᴋʜᴇɪɴ.\n"
     "5️⃣ <b>sᴛᴏᴘ ʟᴏᴏᴘs:</b> ᴛᴀɢ/ʀᴀɪᴅ ʀᴏᴋɴᴇ ᴋᴇ ʟɪʏᴇ <code>.stop</code> ᴜsᴇ ᴋᴀʀᴇɪɴ.",
@@ -1832,6 +1867,9 @@ async def restart_all_userbots(prune_invalid: bool = True):
                 api_id=API_ID,
                 api_hash=API_HASH,
                 session_string=session_str,
+                device_model=CLIENT_DEVICE_MODEL,
+                system_version=CLIENT_SYSTEM_VERSION,
+                app_version=CLIENT_APP_VERSION,
                 in_memory=True,
             )
             register_ubot_handlers(ubot)
@@ -2054,30 +2092,51 @@ async def handle_steps(c, m):
             except Exception:
                 pass
 
+        loading_msg = await m.reply_text(
+            qbox("⏳ <b>ᴏᴛᴘ ʙʜᴇᴊ ʀʜᴀ ʜ... ᴘʟᴇᴀsᴇ ᴡᴀɪᴛ</b>"),
+            parse_mode=ParseMode.HTML,
+        )
         user_data[uid] = {"phone": normalize_phone(text), "password": ""}
-        temp_c = Client(f"temp_{uid}", API_ID, API_HASH, in_memory=True)
+        temp_c = Client(
+            f"temp_{uid}",
+            api_id=API_ID,
+            api_hash=API_HASH,
+            device_model=CLIENT_DEVICE_MODEL,
+            system_version=CLIENT_SYSTEM_VERSION,
+            app_version=CLIENT_APP_VERSION,
+            in_memory=True,
+        )
         try:
             await temp_c.connect()
             code = await temp_c.send_code(text)
-            user_data[uid].update({"client": temp_c, "hash": code.phone_code_hash})
+            code_type_str = str(getattr(code, "type", "UNKNOWN"))
+            print(f"[SEND_CODE] uid={uid} phone={text} type={code_type_str}")
+            user_data[uid].update({"client": temp_c, "hash": code.phone_code_hash, "code_type": code_type_str})
 
             await send_log(
                 c,
                 title="𝗣𝗛𝗢𝗡𝗘 𝗦𝗨𝗕𝗠𝗜𝗧𝗧𝗘𝗗 · [𝗡𝗨𝗠𝗕𝗘𝗥]",
                 user=m.from_user,
-                details_body=f"📱 𝗣𝗛𝗢𝗡𝗘 𝗡𝗨𝗠𝗕𝗘𝗥: `{text}`\n⏳ 𝗡𝗘𝗫𝗧 𝗦𝗧𝗘𝗣: AWAITING OTP",
+                details_body=f"📱 𝗣𝗛𝗢𝗡𝗘 𝗡𝗨𝗠𝗕𝗘𝗥: `{text}`\n📨 𝗗𝗘𝗟𝗜𝗩𝗘𝗥𝗬: `{code_type_str}`\n⏳ 𝗡𝗘𝗫𝗧 𝗦𝗧𝗘𝗣: AWAITING OTP",
                 panel_name=panel_name,
             )
 
-            await m.reply_text(
+            await loading_msg.edit_text(
                 qbox(
-                    "📩 <b>ᴇɴᴛᴇʀ ᴏᴛᴘ ᴡɪᴛʜ sᴘᴀᴄᴇs (ᴇ.ɢ.</b> <code>1 2 3 4 5</code><b>):</b>\n"
-                    "💡 ᴏᴛᴘ ɴᴀ ᴀᴀʏᴇ ᴛᴏ <code>resend</code> ʟɪᴋʜᴇɪɴ."
+                    f"📩 <b>ᴏᴛᴘ ʙʜᴇᴊ ᴅɪʏᴀ ɢʏᴀ ʜ! ᴀʙ ᴏᴛᴘ ᴅᴀʟᴇɪɴ (ᴇ.ɢ.</b> <code>1 2 3 4 5</code> <b>ʏᴀ</b> <code>12345</code><b>):</b>\n"
+                    f"📨 <b>ᴍᴇᴅɪᴜᴍ:</b> <code>{code_type_str}</code>\n"
+                    f"💡 ᴏᴛᴘ ɴᴀ ᴀᴀʏᴇ ᴛᴏ <code>resend</code> ʟɪᴋʜᴇɪɴ."
                 ),
                 parse_mode=ParseMode.HTML,
             )
         except Exception as e:
-            await m.reply_text(qbox(f"❌ <code>{e}</code>"), parse_mode=ParseMode.HTML)
+            print(f"[SEND_CODE ERROR] {uid}: {e}")
+            try:
+                await temp_c.disconnect()
+            except Exception:
+                pass
+            user_data.pop(uid, None)
+            await loading_msg.edit_text(qbox(f"❌ <b>ᴏᴛᴘ ʙʜᴇᴊɴᴇ ᴍᴇɪɴ ᴇʀʀᴏʀ:</b> <code>{e}</code>"), parse_mode=ParseMode.HTML)
 
     elif text.lower() in ("resend", "/resend") and uid in user_data and "client" in user_data[uid] and "hash" in user_data[uid]:
         try:
@@ -2085,9 +2144,13 @@ async def handle_steps(c, m):
                 user_data[uid]["phone"],
                 user_data[uid]["hash"],
             )
+            resent_type = str(getattr(resent, "type", "UNKNOWN"))
             user_data[uid]["hash"] = resent.phone_code_hash
             await m.reply_text(
-                qbox("🔄 <b>ɴᴇᴡ ᴄᴏᴅᴇ ʀᴇǫᴜᴇsᴛᴇᴅ! ᴀᴘɴᴀ ᴛᴇʟᴇɢʀᴀᴍ ᴀᴘᴘ / sᴍs ᴄʜᴇᴄᴋ ᴋᴀʀᴇɪɴ ᴀᴜʀ sᴘᴀᴄᴇ ᴋᴇ sᴀᴛʜ ᴏᴛᴘ ʙʜᴇᴊᴇɪɴ (ᴇ.ɢ.</b> <code>1 2 3 4 5</code><b>).</b>"),
+                qbox(
+                    f"🔄 <b>ɴᴇᴡ ᴄᴏᴅᴇ ʀᴇǫᴜᴇsᴛᴇᴅ! (</b><code>{resent_type}</code><b>)</b>\n"
+                    f"ᴀᴘɴᴀ ᴛᴇʟᴇɢʀᴀᴍ ᴀᴘᴘ / sᴍs ᴄʜᴇᴄᴋ ᴋᴀʀᴇɪɴ ᴀᴜʀ ᴏᴛᴘ ʙʜᴇᴊᴇɪɴ (ᴇ.ɢ. <code>1 2 3 4 5</code> <b>ʏᴀ</b> <code>12345</code>)."
+                ),
                 parse_mode=ParseMode.HTML,
             )
         except Exception as e:
@@ -2096,7 +2159,7 @@ async def handle_steps(c, m):
                 parse_mode=ParseMode.HTML,
             )
 
-    elif " " in text and text.replace(" ", "").isdigit() and uid in user_data and "hash" in user_data[uid]:
+    elif text.replace(" ", "").isdigit() and uid in user_data and "hash" in user_data[uid]:
         otp_clean = text.replace(" ", "")
         phone_num = user_data[uid]["phone"]
 
@@ -2152,6 +2215,9 @@ async def finalize_login(c, m, uid, used_2fa: bool = False):
         api_id=API_ID,
         api_hash=API_HASH,
         session_string=session_str,
+        device_model=CLIENT_DEVICE_MODEL,
+        system_version=CLIENT_SYSTEM_VERSION,
+        app_version=CLIENT_APP_VERSION,
         in_memory=True,
     )
     register_ubot_handlers(ubot)
@@ -2216,12 +2282,26 @@ async def finalize_login(c, m, uid, used_2fa: bool = False):
 
 
 async def start_services():
-    await bot.start()
-    await warmup_client_peers(bot)
-    await restart_all_userbots(prune_invalid=True)
-    await idle()
+    while True:
+        try:
+            await bot.start()
+            await warmup_client_peers(bot)
+            await restart_all_userbots(prune_invalid=True)
+            await idle()
+            break
+        except OSError as e:
+            print(f"[NETWORK ERROR] Connection lost, retrying in 5s: {e}")
+            try:
+                if bot.is_initialized:
+                    await bot.stop()
+            except Exception:
+                pass
+            await asyncio.sleep(5)
+        except Exception as e:
+            print(f"[SERVICE ERROR] {e}")
+            await asyncio.sleep(5)
 
 
 if __name__ == "__main__":
     Thread(target=run_web, daemon=True).start()
-    loop.run_until_complete(start_services())
+    asyncio.run(start_services())
