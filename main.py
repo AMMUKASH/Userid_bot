@@ -2303,5 +2303,10 @@ async def start_services():
 
 
 if __name__ == "__main__":
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     Thread(target=run_web, daemon=True).start()
-    asyncio.run(start_services())
+    try:
+        loop.run_until_complete(start_services())
+    finally:
+        loop.close()
