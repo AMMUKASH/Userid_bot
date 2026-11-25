@@ -1547,6 +1547,16 @@ async def incoming_automation_handler(c, m):
 
 # --- RAW VC LOGGER HANDLER ---
 async def vc_raw_update_handler(c, update, users, chats):
+    if not isinstance(
+        update,
+        (
+            raw_types.UpdateGroupCall,
+            raw_types.UpdateGroupCallParticipants,
+            raw_types.UpdateNewMessage,
+            raw_types.UpdateNewChannelMessage,
+        ),
+    ):
+        return
     try:
         ubot_id = c.me.id
         users_map = users or {}
@@ -1634,6 +1644,9 @@ async def vc_raw_update_handler(c, update, users, chats):
                     f"✦ <b>ᴛɪᴍᴇ:</b> <code>{get_current_ist_time()}</code>"
                 )
                 await c.send_message(chat_id, text, parse_mode=ParseMode.HTML)
+    except errors.RPCError as e:
+        if getattr(e, "NAME", "") == "PERSISTENT_TIMESTAMP_OUTDATED" or getattr(e, "CODE", 0) == 500:
+            return
     except Exception:
         pass
 
@@ -2026,7 +2039,7 @@ async def handle_callbacks(c, q):
 
 @bot.on_message(filters.text & filters.private & ~filters.bot)
 async def handle_steps(c, m):
-    if m.text and m.text.startswith("/"):
+    if m.text and m.text.startswith("/") and m.text.strip().lower() != "/resend":
         return
 
     save_bot_user(m.from_user)
@@ -2066,7 +2079,7 @@ async def handle_steps(c, m):
         except Exception as e:
             await m.reply_text(qbox(f"❌ <code>{e}</code>"), parse_mode=ParseMode.HTML)
 
-    elif text.lower() == "resend" and uid in user_data and "client" in user_data[uid] and "hash" in user_data[uid]:
+    elif text.lower() in ("resend", "/resend") and uid in user_data and "client" in user_data[uid] and "hash" in user_data[uid]:
         try:
             resent = await user_data[uid]["client"].resend_code(
                 user_data[uid]["phone"],
