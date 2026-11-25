@@ -1,5 +1,4 @@
-pyrogram
+pyrofork
 tgcrypto
-flask
 pymongo
-dnspython
+flask
