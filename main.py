@@ -35,7 +35,7 @@ except RuntimeError:
     asyncio.set_event_loop(loop)
 
 from pyrogram import Client, filters, errors, handlers, idle
-from pyrogram.enums import ChatType
+from pyrogram.enums import ChatType, ParseMode
 from pyrogram.raw import functions as raw_functions
 from pyrogram.raw import types as raw_types
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -243,6 +243,28 @@ def get_readable_time(seconds: int) -> str:
     return ping_time or "0s"
 
 
+# --- QUOTE & HTML HELPERS ---
+def qbox(html_content: str, expandable: bool = False) -> str:
+    tag = "<blockquote expandable>" if expandable else "<blockquote>"
+    return f"{tag}{html_content}</blockquote>"
+
+
+def html_mention(user_id: int, name: str) -> str:
+    safe_name = (name or "ᴜsᴇʀ").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    return f'<a href="tg://user?id={user_id}">{safe_name}</a>'
+
+
+async def reply_quote(m, html_text: str, expandable: bool = False):
+    payload = qbox(html_text, expandable=expandable)
+    try:
+        return await m.edit_text(payload, parse_mode=ParseMode.HTML)
+    except Exception:
+        try:
+            return await m.reply_text(payload, parse_mode=ParseMode.HTML)
+        except Exception:
+            return None
+
+
 # --- LOGGING HELPER ---
 def format_user_tag(user):
     if not user:
@@ -360,7 +382,7 @@ FONT_STYLES = {
     ),
     "italic": str.maketrans(
         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
-        "𝑎𝑏𝑐𝑑𝑒𝑓𝑔ℎ𝑖𝑗𝑘𝑙𝑚𝑛𝑜𝑝𝑞𝑟𝑠𝑡𝑢𝑣𝑤𝑥𝑦𝑧𝐴𝐵𝐶𝐷𝐸𝐹𝐺𝐻𝐼𝐽𝐾𝐿𝑀𝑁𝑂𝑃𝑄𝑅𝑆𝐓𝑈𝑉𝑊𝑋𝑌𝑍",
+        "𝑎𝑏𝑐𝑑𝑒𝑓𝑔ℎ𝑖𝑗𝑘𝑙𝑚𝑛𝑜𝑝𝑞𝑟𝑠𝑡𝑢𝑣𝑤𝑥𝑦𝑧𝐴𝐵𝐶𝐷𝐸𝐹𝐺𝐻𝐼𝐽𝐾𝐿𝑀𝑁𝑂𝑃𝑄𝑅𝑆𝑇𝑈𝑉𝑊𝑋𝑌𝑍",
     ),
     "script": str.maketrans(
         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
@@ -482,19 +504,18 @@ async def premium_on_cmd(c, m):
             )
         )
         set_ubot_setting(c.me.id, "premium_emoji_id", emoji_id)
-        await m.edit_text(
-            f"👑 **ᴘʀᴇᴍɪᴜᴍ ᴇᴍᴏᴊɪ sᴛᴀᴛᴜs ᴏɴ!**\n"
-            f"✨ **ᴇᴍᴏᴊɪ ɪᴅ:** `{emoji_id}`\n"
-            f"📌 ᴀʙ ʏᴇ ᴇᴍᴏᴊɪ ᴀᴀᴘᴋᴇ ᴘʀᴏғɪʟᴇ ɴᴀᴍᴇ ᴋᴇ ᴀᴀɢᴇ ᴅɪᴋʜᴇɢᴀ."
+        await reply_quote(
+            m,
+            f"👑 <b>ᴘʀᴇᴍɪᴜᴍ ᴇᴍᴏᴊɪ sᴛᴀᴛᴜs ᴏɴ!</b>\n"
+            f"✨ <b>ᴇᴍᴏᴊɪ ɪᴅ:</b> <code>{emoji_id}</code>\n"
+            f"📌 ᴀʙ ʏᴇ ᴇᴍᴏᴊɪ ᴀᴀᴘᴋᴇ ᴘʀᴏғɪʟᴇ ɴᴀᴍᴇ ᴋᴇ ᴀᴀɢᴇ ᴅɪᴋʜᴇɢᴀ.",
         )
-    except errors.ChatAdminRequired:
-        await m.edit_text("❌ **ᴛᴇʟᴇɢʀᴀᴍ ᴘʀᴇᴍɪᴜᴍ ʀᴇǫᴜɪʀᴇᴅ!**")
     except Exception as e:
         err_msg = str(e)
         if "PREMIUM_ACCOUNT_REQUIRED" in err_msg:
-            await m.edit_text("❌ **ɪs ᴀᴄᴄᴏᴜɴᴛ ᴘᴀʀ ᴛᴇʟᴇɢʀᴀᴍ ᴘʀᴇᴍɪᴜᴍ ᴀᴄᴛɪᴠᴇ ɴᴀʜɪ ʜᴀɪ!**")
+            await reply_quote(m, "❌ <b>ɪs ᴀᴄᴄᴏᴜɴᴛ ᴘᴀʀ ᴛᴇʟᴇɢʀᴀᴍ ᴘʀᴇᴍɪᴜᴍ ᴀᴄᴛɪᴠᴇ ɴᴀʜɪ ʜᴀɪ!</b>")
         else:
-            await m.edit_text(f"❌ **ғᴀɪʟᴇᴅ:** `{e}`")
+            await reply_quote(m, f"❌ <b>ғᴀɪʟᴇᴅ:</b> <code>{e}</code>")
 
 
 async def premium_off_cmd(c, m):
@@ -505,9 +526,9 @@ async def premium_off_cmd(c, m):
             )
         )
         set_ubot_setting(c.me.id, "premium_emoji_id", 0)
-        await m.edit_text("🚫 **ᴘʀᴇᴍɪᴜᴍ ᴇᴍᴏᴊɪ sᴛᴀᴛᴜs ᴏғғ!**\n✨ ɴᴀᴍᴇ ᴋᴇ ᴀᴀɢᴇ sᴇ ᴇᴍᴏᴊɪ ʜᴀᴛᴀ ᴅɪʏᴀ ɢᴀʏᴀ ʜᴀɪ.")
+        await reply_quote(m, "🚫 <b>ᴘʀᴇᴍɪᴜᴍ ᴇᴍᴏᴊɪ sᴛᴀᴛᴜs ᴏғғ!</b>\n✨ ɴᴀᴍᴇ ᴋᴇ ᴀᴀɢᴇ sᴇ ᴇᴍᴏᴊɪ ʜᴀᴛᴀ ᴅɪʏᴀ ɢᴀʏᴀ ʜᴀɪ.")
     except Exception as e:
-        await m.edit_text(f"❌ **ғᴀɪʟᴇᴅ:** `{e}`")
+        await reply_quote(m, f"❌ <b>ғᴀɪʟᴇᴅ:</b> <code>{e}</code>")
 
 
 # --- 1. ACCOUNT & PROFILE COMMANDS ---
@@ -517,58 +538,58 @@ async def myinfo_cmd(c, m):
     phone = normalize_phone(getattr(me, "phone_number", "") or "") or "ʜɪᴅᴅᴇɴ"
     uname = f"@{me.username}" if me.username else "ɴᴏɴᴇ"
     dc_id = getattr(me, "dc_id", None) or "ɴ/ᴀ"
-    text = (
-        f"⚙️ **『 ᴍʏ ᴀᴄᴄᴏᴜɴᴛ ɪɴғᴏ 』** ⚙️\n\n"
-        f"👤 **ɴᴀᴍᴇ:** {me.first_name or ''} {me.last_name or ''}\n"
-        f"🆔 **ᴜsᴇʀ ɪᴅ:** `{me.id}`\n"
-        f"🔗 **ᴜsᴇʀɴᴀᴍᴇ:** {uname}\n"
-        f"📞 **ᴘʜᴏɴᴇ:** `{phone}`\n"
-        f"🌐 **ᴅᴄ ɪᴅ:** `{dc_id}`\n"
-        f"📝 **ʙɪᴏ:** `{chat_me.bio or 'ɴᴏɴᴇ'}`"
+    full_n = f"{me.first_name or ''} {me.last_name or ''}".strip()
+    await reply_quote(
+        m,
+        f"⚙️ <b>『 ᴍʏ ᴀᴄᴄᴏᴜɴᴛ ɪɴғᴏ 』</b> ⚙️\n\n"
+        f"👤 <b>ɴᴀᴍᴇ:</b> {full_n}\n"
+        f"🆔 <b>ᴜsᴇʀ ɪᴅ:</b> <code>{me.id}</code>\n"
+        f"🔗 <b>ᴜsᴇʀɴᴀᴍᴇ:</b> {uname}\n"
+        f"📞 <b>ᴘʜᴏɴᴇ:</b> <code>{phone}</code>\n"
+        f"🌐 <b>ᴅᴄ ɪᴅ:</b> <code>{dc_id}</code>\n"
+        f"📝 <b>ʙɪᴏ:</b> <code>{chat_me.bio or 'ɴᴏɴᴇ'}</code>",
     )
-    try:
-        await m.edit_text(text)
-    except Exception:
-        pass
 
 
 async def setname_cmd(c, m):
     if len(m.command) < 2 and not m.reply_to_message:
-        return await m.edit_text("❌ **ᴜsᴀɢᴇ:** `.setname <first name> | <last name>`")
+        return await reply_quote(m, "❌ <b>ᴜsᴀɢᴇ:</b> <code>.setname &lt;first name&gt; | &lt;last name&gt;</code>")
     raw = m.text.split(None, 1)[1] if len(m.command) > 1 else (m.reply_to_message.text or "")
     parts = [p.strip() for p in raw.split("|", 1)]
     first_name = parts[0]
     last_name = parts[1] if len(parts) > 1 else ""
     try:
         await c.update_profile(first_name=first_name, last_name=last_name)
-        await m.edit_text(f"✅ **ɴᴀᴍᴇ ᴜᴘᴅᴀᴛᴇᴅ:** `{first_name} {last_name}`.strip()")
+        await reply_quote(m, f"✅ <b>ɴᴀᴍᴇ ᴜᴘᴅᴀᴛᴇᴅ:</b> <code>{(first_name + ' ' + last_name).strip()}</code>")
     except Exception as e:
-        await m.edit_text(f"❌ **ғᴀɪʟᴇᴅ:** `{e}`")
+        await reply_quote(m, f"❌ <b>ғᴀɪʟᴇᴅ:</b> <code>{e}</code>")
 
 
 async def setbio_cmd(c, m):
     bio_text = m.text.split(None, 1)[1].strip() if len(m.command) > 1 else (m.reply_to_message.text or "").strip()
     if not bio_text:
-        return await m.edit_text("❌ **ᴜsᴀɢᴇ:** `.setbio <your bio>`")
+        return await reply_quote(m, "❌ <b>ᴜsᴀɢᴇ:</b> <code>.setbio &lt;your bio&gt;</code>")
     try:
         await c.update_profile(bio=bio_text[:70])
-        await m.edit_text(f"✅ **ʙɪᴏ ᴜᴘᴅᴀᴛᴇᴅ:** `{bio_text[:70]}`")
+        await reply_quote(m, f"✅ <b>ʙɪᴏ ᴜᴘᴅᴀᴛᴇᴅ:</b> <code>{bio_text[:70]}</code>")
     except Exception as e:
-        await m.edit_text(f"❌ **ғᴀɪʟᴇᴅ:** `{e}`")
+        await reply_quote(m, f"❌ <b>ғᴀɪʟᴇᴅ:</b> <code>{e}</code>")
 
 
 async def setpic_cmd(c, m):
     target_msg = m.reply_to_message if (m.reply_to_message and m.reply_to_message.photo) else (m if m.photo else None)
     if not target_msg:
-        return await m.edit_text("❌ **ʀᴇᴘʟʏ ᴛᴏ ᴀ ᴘʜᴏᴛᴏ ᴡɪᴛʜ `.setpic`!**")
-    status = await m.edit_text("🖼️ **ᴜᴘᴅᴀᴛɪɴɢ ᴘʀᴏғɪʟᴇ ᴘʜᴏᴛᴏ...**")
+        return await reply_quote(m, "❌ <b>ʀᴇᴘʟʏ ᴛᴏ ᴀ ᴘʜᴏᴛᴏ ᴡɪᴛʜ</b> <code>.setpic</code><b>!</b>")
+    status = await reply_quote(m, "🖼️ <b>ᴜᴘᴅᴀᴛɪɴɢ ᴘʀᴏғɪʟᴇ ᴘʜᴏᴛᴏ...</b>")
     file_path = None
     try:
         file_path = await c.download_media(target_msg.photo.file_id)
         await c.set_profile_photo(photo=file_path)
-        await status.edit("✅ **ᴘʀᴏғɪʟᴇ ᴘʜᴏᴛᴏ ᴜᴘᴅᴀᴛᴇᴅ!**")
+        if status:
+            await status.edit_text(qbox("✅ <b>ᴘʀᴏғɪʟᴇ ᴘʜᴏᴛᴏ ᴜᴘᴅᴀᴛᴇᴅ!</b>"), parse_mode=ParseMode.HTML)
     except Exception as e:
-        await status.edit(f"❌ **ғᴀɪʟᴇᴅ:** `{e}`")
+        if status:
+            await status.edit_text(qbox(f"❌ <b>ғᴀɪʟᴇᴅ:</b> <code>{e}</code>"), parse_mode=ParseMode.HTML)
     finally:
         if file_path and os.path.exists(file_path):
             try:
@@ -581,45 +602,50 @@ async def delpic_cmd(c, m):
     try:
         photos = [p async for p in c.get_chat_photos("me", limit=1)]
         if not photos:
-            return await m.edit_text("⚠️ **ɴᴏ ᴘʀᴏғɪʟᴇ ᴘʜᴏᴛᴏ ғᴏᴜɴᴅ!**")
+            return await reply_quote(m, "⚠️ <b>ɴᴏ ᴘʀᴏғɪʟᴇ ᴘʜᴏᴛᴏ ғᴏᴜɴᴅ!</b>")
         await c.delete_profile_photos([photos[0].file_id])
-        await m.edit_text("🗑️ **ᴘʀᴏғɪʟᴇ ᴘʜᴏᴛᴏ ᴅᴇʟᴇᴛᴇᴅ!**")
+        await reply_quote(m, "🗑️ <b>ᴘʀᴏғɪʟᴇ ᴘʜᴏᴛᴏ ᴅᴇʟᴇᴛᴇᴅ!</b>")
     except Exception as e:
-        await m.edit_text(f"❌ **ғᴀɪʟᴇᴅ:** `{e}`")
+        await reply_quote(m, f"❌ <b>ғᴀɪʟᴇᴅ:</b> <code>{e}</code>")
 
 
 async def username_cmd(c, m):
     if len(m.command) < 2:
-        return await m.edit_text("❌ **ᴜsᴀɢᴇ:** `.username <new_username>` ʏᴀ `none`")
+        return await reply_quote(m, "❌ <b>ᴜsᴀɢᴇ:</b> <code>.username &lt;new_username&gt;</code> ʏᴀ <code>none</code>")
     new_u = m.command[1].strip().lstrip("@")
     try:
         await c.set_username("" if new_u.lower() == "none" else new_u)
-        await m.edit_text(f"✅ **ᴜsᴇʀɴᴀᴍᴇ ᴜᴘᴅᴀᴛᴇᴅ:** `@{new_u}`" if new_u.lower() != "none" else "✅ **ᴜsᴇʀɴᴀᴍᴇ ʀᴇᴍᴏᴠᴇᴅ!**")
+        await reply_quote(
+            m,
+            f"✅ <b>ᴜsᴇʀɴᴀᴍᴇ ᴜᴘᴅᴀᴛᴇᴅ:</b> <code>@{new_u}</code>"
+            if new_u.lower() != "none"
+            else "✅ <b>ᴜsᴇʀɴᴀᴍᴇ ʀᴇᴍᴏᴠᴇᴅ!</b>",
+        )
     except Exception as e:
-        await m.edit_text(f"❌ **ғᴀɪʟᴇᴅ:** `{e}`")
+        await reply_quote(m, f"❌ <b>ғᴀɪʟᴇᴅ:</b> <code>{e}</code>")
 
 
 # --- 2. SECURITY & PRIVACY COMMANDS ---
 async def block_cmd(c, m):
     target = await resolve_target_user(c, m, allow_self_in_pm=True)
     if not target:
-        return await m.edit_text("❌ **ᴜsᴀɢᴇ:** `.block @username` / `user_id` / `reply` ʏᴀ ᴅᴍ ᴍᴇ.")
+        return await reply_quote(m, "❌ <b>ᴜsᴀɢᴇ:</b> <code>.block @username</code> / <code>user_id</code> / <code>reply</code> ʏᴀ ᴅᴍ ᴍᴇ.")
     try:
         await c.block_user(target.id)
-        await m.edit_text(f"⛔ **ʙʟᴏᴄᴋᴇᴅ:** [{target.first_name or 'ᴜsᴇʀ'}](tg://user?id={target.id}) (`{target.id}`)")
+        await reply_quote(m, f"⛔ <b>ʙʟᴏᴄᴋᴇᴅ:</b> {html_mention(target.id, target.first_name or 'ᴜsᴇʀ')} (<code>{target.id}</code>)")
     except Exception as e:
-        await m.edit_text(f"❌ **ғᴀɪʟᴇᴅ:** `{e}`")
+        await reply_quote(m, f"❌ <b>ғᴀɪʟᴇᴅ:</b> <code>{e}</code>")
 
 
 async def unblock_cmd(c, m):
     target = await resolve_target_user(c, m, allow_self_in_pm=True)
     if not target:
-        return await m.edit_text("❌ **ᴜsᴀɢᴇ:** `.unblock @username` / `user_id` / `reply`")
+        return await reply_quote(m, "❌ <b>ᴜsᴀɢᴇ:</b> <code>.unblock @username</code> / <code>user_id</code> / <code>reply</code>")
     try:
         await c.unblock_user(target.id)
-        await m.edit_text(f"✅ **ᴜɴʙʟᴏᴄᴋᴇᴅ:** [{target.first_name or 'ᴜsᴇʀ'}](tg://user?id={target.id}) (`{target.id}`)")
+        await reply_quote(m, f"✅ <b>ᴜɴʙʟᴏᴄᴋᴇᴅ:</b> {html_mention(target.id, target.first_name or 'ᴜsᴇʀ')} (<code>{target.id}</code>)")
     except Exception as e:
-        await m.edit_text(f"❌ **ғᴀɪʟᴇᴅ:** `{e}`")
+        await reply_quote(m, f"❌ <b>ғᴀɪʟᴇᴅ:</b> <code>{e}</code>")
 
 
 async def blocked_cmd(c, m):
@@ -629,18 +655,18 @@ async def blocked_cmd(c, m):
         blocked_ids = [extract_peer_id(b.peer_id) for b in getattr(res, "blocked", [])]
         blocked_ids = [bid for bid in blocked_ids if bid]
         if not blocked_ids:
-            return await m.edit_text("📭 **ʙʟᴏᴄᴋ ʟɪsᴛ ᴇᴍᴘᴛʏ ʜᴀɪ.**")
-        lines = [f"🚫 **ʙʟᴏᴄᴋᴇᴅ ᴜsᴇʀs ({len(blocked_ids)}):**\n"]
+            return await reply_quote(m, "📭 <b>ʙʟᴏᴄᴋ ʟɪsᴛ ᴇᴍᴘᴛʏ ʜᴀɪ.</b>")
+        lines = [f"🚫 <b>ʙʟᴏᴄᴋᴇᴅ ᴜsᴇʀs ({len(blocked_ids)}):</b>\n"]
         for i, bid in enumerate(blocked_ids[:25], start=1):
             fname, uname, uid_val = format_raw_user_info(bid, users_map)
-            lines.append(f"`{i}.` [{fname}](tg://user?id={uid_val}) ({uname}) — `{uid_val}`")
-        await m.edit_text("\n".join(lines))
+            lines.append(f"<code>{i}.</code> {html_mention(uid_val, fname)} ({uname}) — <code>{uid_val}</code>")
+        await reply_quote(m, "\n".join(lines), expandable=True)
     except Exception as e:
-        await m.edit_text(f"❌ **ғᴀɪʟᴇᴅ:** `{e}`")
+        await reply_quote(m, f"❌ <b>ғᴀɪʟᴇᴅ:</b> <code>{e}</code>")
 
 
 async def clearblocked_cmd(c, m):
-    status = await m.edit_text("🧹 **ᴄʟᴇᴀʀɪɴɢ ʙʟᴏᴄᴋᴇᴅ ᴜsᴇʀs...**")
+    status = await reply_quote(m, "🧹 <b>ᴄʟᴇᴀʀɪɴɢ ʙʟᴏᴄᴋᴇᴅ ᴜsᴇʀs...</b>")
     unblocked = 0
     try:
         res = await c.invoke(raw_functions.contacts.GetBlocked(offset=0, limit=100))
@@ -653,26 +679,28 @@ async def clearblocked_cmd(c, m):
                     await asyncio.sleep(0.2)
                 except Exception:
                     pass
-        await status.edit(f"✅ **ᴜɴʙʟᴏᴄᴋᴇᴅ `{unblocked}` ᴜsᴇʀs!**")
+        if status:
+            await status.edit_text(qbox(f"✅ <b>ᴜɴʙʟᴏᴄᴋᴇᴅ</b> <code>{unblocked}</code> <b>ᴜsᴇʀs!</b>"), parse_mode=ParseMode.HTML)
     except Exception as e:
-        await status.edit(f"❌ **ғᴀɪʟᴇᴅ:** `{e}`")
+        if status:
+            await status.edit_text(qbox(f"❌ <b>ғᴀɪʟᴇᴅ:</b> <code>{e}</code>"), parse_mode=ParseMode.HTML)
 
 
 async def sessions_cmd(c, m):
     try:
         auths = await c.invoke(raw_functions.account.GetAuthorizations())
         items = getattr(auths, "authorizations", []) or []
-        lines = [f"🔐 **ᴀᴄᴛɪᴠᴇ sᴇssɪᴏɴs ({len(items)}):**\n"]
+        lines = [f"🔐 <b>ᴀᴄᴛɪᴠᴇ sᴇssɪᴏɴs ({len(items)}):</b>\n"]
         for idx, a in enumerate(items[:15], start=1):
             curr = "🟢 ᴄᴜʀʀᴇɴᴛ" if getattr(a, "current", False) else "🔹 sᴇssɪᴏɴ"
             dev = getattr(a, "device_model", "Unknown")
             plat = getattr(a, "platform", "")
             ip = getattr(a, "ip", "")
             country = getattr(a, "country", "")
-            lines.append(f"`{idx}.` {curr} — **{dev}** ({plat}) | `{ip}` {country}")
-        await m.edit_text("\n".join(lines))
+            lines.append(f"<code>{idx}.</code> {curr} — <b>{dev}</b> ({plat}) | <code>{ip}</code> {country}")
+        await reply_quote(m, "\n".join(lines), expandable=True)
     except Exception as e:
-        await m.edit_text(f"❌ **ғᴀɪʟᴇᴅ:** `{e}`")
+        await reply_quote(m, f"❌ <b>ғᴀɪʟᴇᴅ:</b> <code>{e}</code>")
 
 
 async def privacy_cmd(c, m):
@@ -682,62 +710,62 @@ async def privacy_cmd(c, m):
     night_m = "🟢 ᴏɴ" if get_ubot_setting(c.me.id, "nightmode", False) else "🔴 ᴏғғ"
     vc_log = "🟢 ᴏɴ" if get_vc_logger_state(c.me.id, m.chat.id) else "🔴 ᴏғғ"
     prem_emoji = get_ubot_setting(c.me.id, "premium_emoji_id", 0)
-    prem_status = f"🟢 ᴏɴ (`{prem_emoji}`)" if prem_emoji else "🔴 ᴏғғ"
-    text = (
-        f"🛡️ **『 ᴘʀɪᴠᴀᴄʏ & sᴇᴄᴜʀɪᴛʏ sᴛᴀᴛᴜs 』** 🛡️\n\n"
-        f"• **ᴅᴍ ᴘʀɪᴠᴀᴄʏ (3-ᴡᴀʀɴ):** {dm_priv}\n"
-        f"• **ᴘʀᴇᴍɪᴜᴍ ᴇᴍᴏᴊɪ:** {prem_status}\n"
-        f"• **ᴀᴜᴛᴏ-sᴇᴇɴ:** {auto_seen}\n"
-        f"• **ᴀᴜᴛᴏ-ʀᴇᴘʟʏ:** {auto_rep}\n"
-        f"• **ɴɪɢʜᴛ ᴍᴏᴅᴇ:** {night_m}\n"
-        f"• **ᴠᴄ ʟᴏɢɢᴇʀ (ᴛʜɪs ᴄʜᴀᴛ):** {vc_log}"
+    prem_status = f"🟢 ᴏɴ (<code>{prem_emoji}</code>)" if prem_emoji else "🔴 ᴏғғ"
+    await reply_quote(
+        m,
+        f"🛡️ <b>『 ᴘʀɪᴠᴀᴄʏ & sᴇᴄᴜʀɪᴛʏ sᴛᴀᴛᴜs 』</b> 🛡️\n\n"
+        f"• <b>ᴅᴍ ᴘʀɪᴠᴀᴄʏ (3-ᴡᴀʀɴ):</b> {dm_priv}\n"
+        f"• <b>ᴘʀᴇᴍɪᴜᴍ ᴇᴍᴏᴊɪ:</b> {prem_status}\n"
+        f"• <b>ᴀᴜᴛᴏ-sᴇᴇɴ:</b> {auto_seen}\n"
+        f"• <b>ᴀᴜᴛᴏ-ʀᴇᴘʟʏ:</b> {auto_rep}\n"
+        f"• <b>ɴɪɢʜᴛ ᴍᴏᴅᴇ:</b> {night_m}\n"
+        f"• <b>ᴠᴄ ʟᴏɢɢᴇʀ (ᴛʜɪs ᴄʜᴀᴛ):</b> {vc_log}",
     )
-    await m.edit_text(text)
 
 
 # --- 3. CHAT MANAGEMENT COMMANDS ---
 async def save_cmd(c, m):
     if not m.reply_to_message:
-        return await m.edit_text("❌ **ʀᴇᴘʟʏ ᴛᴏ ᴀ ᴍᴇssᴀɢᴇ ᴛᴏ sᴀᴠᴇ ɪɴ sᴀᴠᴇᴅ ᴍᴇssᴀɢᴇs!**")
+        return await reply_quote(m, "❌ <b>ʀᴇᴘʟʏ ᴛᴏ ᴀ ᴍᴇssᴀɢᴇ ᴛᴏ sᴀᴠᴇ ɪɴ sᴀᴠᴇᴅ ᴍᴇssᴀɢᴇs!</b>")
     try:
         await m.reply_to_message.copy("me")
-        await m.edit_text("💾 **sᴀᴠᴇᴅ ᴛᴏ ʏᴏᴜʀ sᴀᴠᴇᴅ ᴍᴇssᴀɢᴇs!**")
+        await reply_quote(m, "💾 <b>sᴀᴠᴇᴅ ᴛᴏ ʏᴏᴜʀ sᴀᴠᴇᴅ ᴍᴇssᴀɢᴇs!</b>")
     except Exception as e:
-        await m.edit_text(f"❌ **ғᴀɪʟᴇᴅ:** `{e}`")
+        await reply_quote(m, f"❌ <b>ғᴀɪʟᴇᴅ:</b> <code>{e}</code>")
 
 
 async def del_cmd(c, m):
     if not m.reply_to_message:
-        return await m.edit_text("❌ **ʀᴇᴘʟʏ ᴛᴏ ᴀ ᴍᴇssᴀɢᴇ ᴛᴏ ᴅᴇʟᴇᴛᴇ!**")
+        return await reply_quote(m, "❌ <b>ʀᴇᴘʟʏ ᴛᴏ ᴀ ᴍᴇssᴀɢᴇ ᴛᴏ ᴅᴇʟᴇᴛᴇ!</b>")
     try:
         await m.reply_to_message.delete()
         await m.delete()
     except Exception as e:
-        await m.edit_text(f"❌ **ғᴀɪʟᴇᴅ:** `{e}`")
+        await reply_quote(m, f"❌ <b>ғᴀɪʟᴇᴅ:</b> <code>{e}</code>")
 
 
 async def edit_cmd(c, m):
     if not m.reply_to_message or len(m.command) < 2:
-        return await m.edit_text("❌ **ʀᴇᴘʟʏ ᴛᴏ ʏᴏᴜʀ ᴍᴇssᴀɢᴇ ᴡɪᴛʜ `.edit <new text>`!**")
+        return await reply_quote(m, "❌ <b>ʀᴇᴘʟʏ ᴛᴏ ʏᴏᴜʀ ᴍᴇssᴀɢᴇ ᴡɪᴛʜ</b> <code>.edit &lt;new text&gt;</code><b>!</b>")
     new_text = m.text.split(None, 1)[1]
     try:
         await m.reply_to_message.edit_text(new_text)
         await m.delete()
     except Exception as e:
-        await m.edit_text(f"❌ **ғᴀɪʟᴇᴅ:** `{e}`")
+        await reply_quote(m, f"❌ <b>ғᴀɪʟᴇᴅ:</b> <code>{e}</code>")
 
 
 async def pin_cmd(c, m):
     if not m.reply_to_message:
-        return await m.edit_text("❌ **ʀᴇᴘʟʏ ᴛᴏ ᴀ ᴍᴇssᴀɢᴇ ᴛᴏ ᴘɪɴ!**")
+        return await reply_quote(m, "❌ <b>ʀᴇᴘʟʏ ᴛᴏ ᴀ ᴍᴇssᴀɢᴇ ᴛᴏ ᴘɪɴ!</b>")
     loud = True
     if len(m.command) > 1 and m.command[1].lower() in ("silent", "quiet", "false"):
         loud = False
     try:
         await m.reply_to_message.pin(disable_notification=not loud)
-        await m.edit_text("📌 **ᴍᴇssᴀɢᴇ ᴘɪɴɴᴇᴅ!**")
+        await reply_quote(m, "📌 <b>ᴍᴇssᴀɢᴇ ᴘɪɴɴᴇᴅ!</b>")
     except Exception as e:
-        await m.edit_text(f"❌ **ғᴀɪʟᴇᴅ:** `{e}`")
+        await reply_quote(m, f"❌ <b>ғᴀɪʟᴇᴅ:</b> <code>{e}</code>")
 
 
 async def unpin_cmd(c, m):
@@ -746,14 +774,14 @@ async def unpin_cmd(c, m):
             await c.unpin_chat_message(m.chat.id, m.reply_to_message.id)
         else:
             await c.unpin_all_chat_messages(m.chat.id)
-        await m.edit_text("📍 **ᴍᴇssᴀɢᴇ ᴜɴᴘɪɴɴᴇᴅ!**")
+        await reply_quote(m, "📍 <b>ᴍᴇssᴀɢᴇ ᴜɴᴘɪɴɴᴇᴅ!</b>")
     except Exception as e:
-        await m.edit_text(f"❌ **ғᴀɪʟᴇᴅ:** `{e}`")
+        await reply_quote(m, f"❌ <b>ғᴀɪʟᴇᴅ:</b> <code>{e}</code>")
 
 
 async def purge_cmd(c, m):
     if not m.reply_to_message:
-        return await m.edit_text("❌ **ʀᴇᴘʟʏ ᴛᴏ ᴛʜᴇ sᴛᴀʀᴛ ᴍᴇssᴀɢᴇ ᴡɪᴛʜ `.purge`!**")
+        return await reply_quote(m, "❌ <b>ʀᴇᴘʟʏ ᴛᴏ ᴛʜᴇ sᴛᴀʀᴛ ᴍᴇssᴀɢᴇ ᴡɪᴛʜ</b> <code>.purge</code><b>!</b>")
     start_id = m.reply_to_message.id
     end_id = m.id
     msg_ids = list(range(start_id, end_id + 1))
@@ -764,11 +792,15 @@ async def purge_cmd(c, m):
             await c.delete_messages(m.chat.id, chunk)
             deleted += len(chunk)
             await asyncio.sleep(0.2)
-        confirm = await c.send_message(m.chat.id, f"🧹 **ᴘᴜʀɢᴇᴅ `{deleted}` ᴍᴇssᴀɢᴇs!**")
+        confirm = await c.send_message(
+            m.chat.id,
+            qbox(f"🧹 <b>ᴘᴜʀɢᴇᴅ</b> <code>{deleted}</code> <b>ᴍᴇssᴀɢᴇs!</b>"),
+            parse_mode=ParseMode.HTML,
+        )
         await asyncio.sleep(2)
         await confirm.delete()
     except Exception as e:
-        await m.edit_text(f"❌ **ᴘᴜʀɢᴇ ғᴀɪʟᴇᴅ:** `{e}`")
+        await reply_quote(m, f"❌ <b>ᴘᴜʀɢᴇ ғᴀɪʟᴇᴅ:</b> <code>{e}</code>")
 
 
 async def history_cmd(c, m):
@@ -781,14 +813,15 @@ async def history_cmd(c, m):
             if msg.id == m.id:
                 continue
             sender = msg.from_user.first_name if msg.from_user else (msg.sender_chat.title if msg.sender_chat else "ᴜsᴇʀ")
-            snippet = (msg.text or msg.caption or f"[{msg.media.value}]" if msg.media else "").replace("\n", " ")[:45]
-            msgs.append(f"• **{sender}:** `{snippet}`")
+            snippet = (msg.text or msg.caption or (f"[{msg.media.value}]" if msg.media else "")).replace("\n", " ")[:45]
+            safe_snip = snippet.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            msgs.append(f"• <b>{sender}:</b> <code>{safe_snip}</code>")
             if len(msgs) >= limit:
                 break
-        text = f"🕘 **ᴄʜᴀᴛ ʜɪsᴛᴏʀʏ (ʟᴀsᴛ {len(msgs)})**\n\n" + ("\n".join(msgs) if msgs else "ɴᴏ ᴍᴇssᴀɢᴇs.")
-        await m.edit_text(text)
+        text = f"🕘 <b>ᴄʜᴀᴛ ʜɪsᴛᴏʀʏ (ʟᴀsᴛ {len(msgs)})</b>\n\n" + ("\n".join(msgs) if msgs else "ɴᴏ ᴍᴇssᴀɢᴇs.")
+        await reply_quote(m, text, expandable=True)
     except Exception as e:
-        await m.edit_text(f"❌ **ғᴀɪʟᴇᴅ:** `{e}`")
+        await reply_quote(m, f"❌ <b>ғᴀɪʟᴇᴅ:</b> <code>{e}</code>")
 
 
 # --- 4. FUN & UTILITIES COMMANDS ---
@@ -804,14 +837,17 @@ async def font_cmd(c, m):
     else:
         if len(parts) < 2:
             styles_list = ", ".join(FONT_STYLES.keys())
-            return await m.edit_text(f"❌ **ᴜsᴀɢᴇ:** `.font <style> <text>` ʏᴀ ʀᴇᴘʟʏ\n🎨 **sᴛʏʟᴇs:** `{styles_list}`")
+            return await reply_quote(
+                m,
+                f"❌ <b>ᴜsᴀɢᴇ:</b> <code>.font &lt;style&gt; &lt;text&gt;</code> ʏᴀ ʀᴇᴘʟʏ\n🎨 <b>sᴛʏʟᴇs:</b> <code>{styles_list}</code>",
+            )
         if parts[1].lower() in FONT_STYLES and len(parts) >= 3:
             style = parts[1].lower()
             source_text = parts[2]
         else:
             source_text = m.text.split(None, 1)[1]
 
-    await m.edit_text(stylize_text(source_text, style))
+    await reply_quote(m, stylize_text(source_text, style))
 
 
 async def afk_cmd(c, m):
@@ -819,33 +855,37 @@ async def afk_cmd(c, m):
     reason = m.text.split(None, 1)[1].strip() if len(m.command) > 1 else "ʙᴜsʏ ʀɪɢʜᴛ ɴᴏᴡ"
     if reason.lower() in ("off", "back", "stop"):
         afk_state.pop(uid, None)
-        return await m.edit_text("🟢 **ᴀғᴋ ᴍᴏᴅᴇ ᴏғғ! ᴡᴇʟᴄᴏᴍᴇ ʙᴀᴄᴋ.**")
+        return await reply_quote(m, "🟢 <b>ᴀғᴋ ᴍᴏᴅᴇ ᴏғғ! ᴡᴇʟᴄᴏᴍᴇ ʙᴀᴄᴋ.</b>")
     afk_state[uid] = {"reason": reason, "since": time.time()}
-    await m.edit_text(f"💤 **ᴀғᴋ ᴍᴏᴅᴇ ᴏɴ!**\n📝 **ʀᴇᴀsᴏɴ:** `{reason}`")
+    await reply_quote(m, f"💤 <b>ᴀғᴋ ᴍᴏᴅᴇ ᴏɴ!</b>\n📝 <b>ʀᴇᴀsᴏɴ:</b> <code>{reason}</code>")
 
 
 async def calc_cmd(c, m):
     expr = m.text.split(None, 1)[1] if len(m.command) > 1 else (m.reply_to_message.text or "")
     if not expr.strip():
-        return await m.edit_text("❌ **ᴜsᴀɢᴇ:** `.calc 25 * 4 + 10`")
+        return await reply_quote(m, "❌ <b>ᴜsᴀɢᴇ:</b> <code>.calc 25 * 4 + 10</code>")
     try:
         result = safe_math_eval(expr)
-        await m.edit_text(f"🧮 **ᴄᴀʟᴄᴜʟᴀᴛᴏʀ**\n\n📥 **ɪɴᴘᴜᴛ:** `{expr.strip()}`\n📤 **ʀᴇsᴜʟᴛ:** `{result}`")
+        await reply_quote(
+            m,
+            f"🧮 <b>ᴄᴀʟᴄᴜʟᴀᴛᴏʀ</b>\n\n📥 <b>ɪɴᴘᴜᴛ:</b> <code>{expr.strip()}</code>\n📤 <b>ʀᴇsᴜʟᴛ:</b> <code>{result}</code>",
+        )
     except Exception:
-        await m.edit_text("❌ **ɪɴᴠᴀʟɪᴅ ᴍᴀᴛʜ ᴇxᴘʀᴇssɪᴏɴ!**")
+        await reply_quote(m, "❌ <b>ɪɴᴠᴀʟɪᴅ ᴍᴀᴛʜ ᴇxᴘʀᴇssɪᴏɴ!</b>")
 
 
 async def time_cmd(c, m):
     tz_input = m.text.split(None, 1)[1].strip() if len(m.command) > 1 else "Asia/Kolkata"
     try:
         now = datetime.now(ZoneInfo(tz_input))
-        await m.edit_text(
-            f"🕒 **ᴛɪᴍᴇ ᴢᴏɴᴇ:** `{tz_input}`\n"
-            f"📅 **ᴅᴀᴛᴇ:** `{now.strftime('%d %B %Y')}`\n"
-            f"⏰ **ᴛɪᴍᴇ:** `{now.strftime('%I:%M:%S %p')}`"
+        await reply_quote(
+            m,
+            f"🕒 <b>ᴛɪᴍᴇ ᴢᴏɴᴇ:</b> <code>{tz_input}</code>\n"
+            f"📅 <b>ᴅᴀᴛᴇ:</b> <code>{now.strftime('%d %B %Y')}</code>\n"
+            f"⏰ <b>ᴛɪᴍᴇ:</b> <code>{now.strftime('%I:%M:%S %p')}</code>",
         )
     except Exception:
-        await m.edit_text("❌ **ɪɴᴠᴀʟɪᴅ ᴛɪᴍᴇᴢᴏɴᴇ!** (ᴇ.ɢ. `.time Asia/Kolkata` ʏᴀ `.time UTC`)")
+        await reply_quote(m, "❌ <b>ɪɴᴠᴀʟɪᴅ ᴛɪᴍᴇᴢᴏɴᴇ!</b> (ᴇ.ɢ. <code>.time Asia/Kolkata</code> ʏᴀ <code>.time UTC</code>)")
 
 
 async def weather_cmd(c, m):
@@ -865,36 +905,38 @@ async def weather_cmd(c, m):
         feels_c = curr.get("FeelsLikeC", "N/A")
         humidity = curr.get("humidity", "N/A")
         desc = curr.get("weatherDesc", [{}])[0].get("value", "N/A")
-        await m.edit_text(
-            f"🌤️ **ᴡᴇᴀᴛʜᴇʀ ɪɴ {city.upper()}**\n\n"
-            f"🌡️ **ᴛᴇᴍᴘ:** `{temp_c}°C` (ғᴇᴇʟs `{feels_c}°C`)\n"
-            f"☁️ **ᴄᴏɴᴅɪᴛɪᴏɴ:** `{desc}`\n"
-            f"💧 **ʜᴜᴍɪᴅɪᴛʏ:** `{humidity}%`"
+        await reply_quote(
+            m,
+            f"🌤️ <b>ᴡᴇᴀᴛʜᴇʀ ɪɴ {city.upper()}</b>\n\n"
+            f"🌡️ <b>ᴛᴇᴍᴘ:</b> <code>{temp_c}°C</code> (ғᴇᴇʟs <code>{feels_c}°C</code>)\n"
+            f"☁️ <b>ᴄᴏɴᴅɪᴛɪᴏɴ:</b> <code>{desc}</code>\n"
+            f"💧 <b>ʜᴜᴍɪᴅɪᴛʏ:</b> <code>{humidity}%</code>",
         )
     except Exception as e:
-        await m.edit_text(f"❌ **ᴡᴇᴀᴛʜᴇʀ ғᴇᴛᴄʜ ғᴀɪʟᴇᴅ:** `{e}`")
+        await reply_quote(m, f"❌ <b>ᴡᴇᴀᴛʜᴇʀ ғᴇᴛᴄʜ ғᴀɪʟᴇᴅ:</b> <code>{e}</code>")
 
 
 async def id_cmd(c, m):
     target = await resolve_target_user(c, m, allow_self_in_pm=False)
-    lines = [f"🆔 **ᴄʜᴀᴛ ɪᴅ:** `{m.chat.id}`"]
+    lines = [f"🆔 <b>ᴄʜᴀᴛ ɪᴅ:</b> <code>{m.chat.id}</code>"]
     if m.chat.type != ChatType.PRIVATE:
-        lines.append(f"💬 **ᴄʜᴀᴛ ᴛʏᴘᴇ:** `{m.chat.type.name}`")
+        lines.append(f"💬 <b>ᴄʜᴀᴛ ᴛʏᴘᴇ:</b> <code>{m.chat.type.name}</code>")
     if target:
-        lines.append(f"👤 **ᴛᴀʀɢᴇᴛ ᴜsᴇʀ ɪᴅ:** `{target.id}` ({target.first_name or 'ᴜsᴇʀ'})")
+        lines.append(f"👤 <b>ᴛᴀʀɢᴇᴛ ᴜsᴇʀ ɪᴅ:</b> <code>{target.id}</code> ({target.first_name or 'ᴜsᴇʀ'})")
     elif m.from_user:
-        lines.append(f"👤 **ʏᴏᴜʀ ᴜsᴇʀ ɪᴅ:** `{m.from_user.id}`")
+        lines.append(f"👤 <b>ʏᴏᴜʀ ᴜsᴇʀ ɪᴅ:</b> <code>{m.from_user.id}</code>")
     if m.reply_to_message:
-        lines.append(f"✉️ **ʀᴇᴘʟɪᴇᴅ ᴍsɢ ɪᴅ:** `{m.reply_to_message.id}`")
-    await m.edit_text("\n".join(lines))
+        lines.append(f"✉️ <b>ʀᴇᴘʟɪᴇᴅ ᴍsɢ ɪᴅ:</b> <code>{m.reply_to_message.id}</code>")
+    await reply_quote(m, "\n".join(lines))
 
 
 async def json_cmd(c, m):
     target_msg = m.reply_to_message or m
     raw_str = str(target_msg)
-    if len(raw_str) > 3500:
-        raw_str = raw_str[:3500] + "\n... [truncated]"
-    await m.edit_text(f"🧾 **ᴍᴇssᴀɢᴇ ᴊsᴏɴ / ᴅᴀᴛᴀ**\n\n```json\n{raw_str}\n```")
+    if len(raw_str) > 3400:
+        raw_str = raw_str[:3400] + "\n... [truncated]"
+    safe_raw = raw_str.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    await reply_quote(m, f"🧾 <b>ᴍᴇssᴀɢᴇ ᴊsᴏɴ / ᴅᴀᴛᴀ</b>\n\n<pre>{safe_raw}</pre>", expandable=True)
 
 
 # --- 5. ADVANCED FEATURES COMMANDS ---
@@ -907,22 +949,23 @@ async def autoreply_cmd(c, m):
             "autoreply_text",
             "ʜᴇʟʟᴏ! ᴍᴀɪɴ ᴀʙʜɪ ʀᴇᴘʟʏ ɴᴀʜɪ ᴋᴀʀ ᴘᴀᴜɴɢᴀ, ʙᴀᴀᴅ ᴍᴇ ʙᴀᴀᴛ ᴋᴀʀᴛᴇ ʜᴀɪɴ.",
         )
-        return await m.edit_text(
-            f"🤖 **ᴀᴜᴛᴏ-ʀᴇᴘʟʏ:** `{curr_state}`\n"
-            f"💬 **ᴍᴇssᴀɢᴇ:** `{curr_msg}`\n\n"
-            f"ᴜsᴀɢᴇ: `.autoreply on/off` ʏᴀ `.autoreply <custom text>`"
+        return await reply_quote(
+            m,
+            f"🤖 <b>ᴀᴜᴛᴏ-ʀᴇᴘʟʏ:</b> <code>{curr_state}</code>\n"
+            f"💬 <b>ᴍᴇssᴀɢᴇ:</b> <code>{curr_msg}</code>\n\n"
+            f"ᴜsᴀɢᴇ: <code>.autoreply on/off</code> ʏᴀ <code>.autoreply &lt;custom text&gt;</code>",
         )
     arg = m.text.split(None, 1)[1].strip()
     if arg.lower() == "on":
         set_ubot_setting(uid, "autoreply_enabled", True)
-        await m.edit_text("✅ **ᴀᴜᴛᴏ-ʀᴇᴘʟʏ ᴏɴ ᴋᴀʀ ᴅɪʏᴀ ɢᴀʏᴀ ʜᴀɪ!**")
+        await reply_quote(m, "✅ <b>ᴀᴜᴛᴏ-ʀᴇᴘʟʏ ᴏɴ ᴋᴀʀ ᴅɪʏᴀ ɢᴀʏᴀ ʜᴀɪ!</b>")
     elif arg.lower() == "off":
         set_ubot_setting(uid, "autoreply_enabled", False)
-        await m.edit_text("🔴 **ᴀᴜᴛᴏ-ʀᴇᴘʟʏ ᴏғғ ᴋᴀʀ ᴅɪʏᴀ ɢᴀʏᴀ ʜᴀɪ!**")
+        await reply_quote(m, "🔴 <b>ᴀᴜᴛᴏ-ʀᴇᴘʟʏ ᴏғғ ᴋᴀʀ ᴅɪʏᴀ ɢᴀʏᴀ ʜᴀɪ!</b>")
     else:
         set_ubot_setting(uid, "autoreply_text", arg)
         set_ubot_setting(uid, "autoreply_enabled", True)
-        await m.edit_text(f"✅ **ᴀᴜᴛᴏ-ʀᴇᴘʟʏ ᴏɴ & ᴛᴇxᴛ sᴇᴛ:** `{arg}`")
+        await reply_quote(m, f"✅ <b>ᴀᴜᴛᴏ-ʀᴇᴘʟʏ ᴏɴ &amp; ᴛᴇxᴛ sᴇᴛ:</b> <code>{arg}</code>")
 
 
 async def autoseen_cmd(c, m):
@@ -930,7 +973,7 @@ async def autoseen_cmd(c, m):
     arg = m.command[1].lower() if len(m.command) > 1 else ("off" if get_ubot_setting(uid, "autoseen", False) else "on")
     enabled = arg in ("on", "true", "1", "yes")
     set_ubot_setting(uid, "autoseen", enabled)
-    await m.edit_text(f"👁️ **ᴀᴜᴛᴏ-sᴇᴇɴ {'ᴏɴ' if enabled else 'ᴏғғ'}!**")
+    await reply_quote(m, f"👁️ <b>ᴀᴜᴛᴏ-sᴇᴇɴ {'ᴏɴ' if enabled else 'ᴏғғ'}!</b>")
 
 
 async def nightmode_cmd(c, m):
@@ -938,15 +981,15 @@ async def nightmode_cmd(c, m):
     arg = m.command[1].lower() if len(m.command) > 1 else ("off" if get_ubot_setting(uid, "nightmode", False) else "on")
     enabled = arg in ("on", "true", "1", "yes")
     set_ubot_setting(uid, "nightmode", enabled)
-    await m.edit_text(f"🌙 **ɴɪɢʜᴛ ᴍᴏᴅᴇ {'ᴏɴ' if enabled else 'ᴏғғ'}!**")
+    await reply_quote(m, f"🌙 <b>ɴɪɢʜᴛ ᴍᴏᴅᴇ {'ᴏɴ' if enabled else 'ᴏғғ'}!</b>")
 
 
 async def gcast_cmd(c, m):
     text_to_send = m.text.split(None, 1)[1].strip() if len(m.command) > 1 else (m.reply_to_message.text or "").strip()
     if not text_to_send and not m.reply_to_message:
-        return await m.edit_text("❌ **ᴜsᴀɢᴇ:** `.gcast <message>` ʏᴀ ᴍᴇssᴀɢᴇ ᴘᴀʀ ʀᴇᴘʟʏ ᴋᴀʀᴇɪɴ.")
+        return await reply_quote(m, "❌ <b>ᴜsᴀɢᴇ:</b> <code>.gcast &lt;message&gt;</code> ʏᴀ ᴍᴇssᴀɢᴇ ᴘᴀʀ ʀᴇᴘʟʏ ᴋᴀʀᴇɪɴ.")
 
-    status = await m.edit_text("📣 **ɢᴄᴀsᴛ sᴛᴀʀᴛᴇᴅ...**")
+    status = await reply_quote(m, "📣 <b>ɢᴄᴀsᴛ sᴛᴀʀᴛᴇᴅ...</b>")
     sent, failed = 0, 0
     try:
         async for dialog in c.get_dialogs():
@@ -955,41 +998,45 @@ async def gcast_cmd(c, m):
                     if m.reply_to_message and len(m.command) < 2:
                         await m.reply_to_message.copy(dialog.chat.id)
                     else:
-                        await c.send_message(dialog.chat.id, text_to_send)
+                        await c.send_message(dialog.chat.id, qbox(text_to_send), parse_mode=ParseMode.HTML)
                     sent += 1
                     await asyncio.sleep(0.4)
                 except errors.FloodWait as e:
                     await asyncio.sleep(e.value + 1)
                 except Exception:
                     failed += 1
-        await status.edit(f"✅ **ɢᴄᴀsᴛ ᴄᴏᴍᴘʟᴇᴛᴇᴅ!**\n\n🟢 **sᴇɴᴛ:** `{sent}`\n🔴 **ғᴀɪʟᴇᴅ:** `{failed}`")
+        if status:
+            await status.edit_text(
+                qbox(f"✅ <b>ɢᴄᴀsᴛ ᴄᴏᴍᴘʟᴇᴛᴇᴅ!</b>\n\n🟢 <b>sᴇɴᴛ:</b> <code>{sent}</code>\n🔴 <b>ғᴀɪʟᴇᴅ:</b> <code>{failed}</code>"),
+                parse_mode=ParseMode.HTML,
+            )
     except Exception as e:
-        await status.edit(f"❌ **ɢᴄᴀsᴛ ғᴀɪʟᴇᴅ:** `{e}`")
+        if status:
+            await status.edit_text(qbox(f"❌ <b>ɢᴄᴀsᴛ ғᴀɪʟᴇᴅ:</b> <code>{e}</code>"), parse_mode=ParseMode.HTML)
 
 
 async def backup_cmd(c, m):
-    status = await m.edit_text("💼 **ʙᴀᴄᴋᴜᴘ ᴄʀᴇᴀᴛɪɴɢ...**")
+    status = await reply_quote(m, "💼 <b>ʙᴀᴄᴋᴜᴘ ᴄʀᴇᴀᴛɪɴɢ...</b>")
     try:
         session_str = await c.export_session_string()
         me = await c.get_me()
-        backup_payload = (
-            f"💼 **ᴄᴏᴅᴇʀɴᴏᴠᴀ ᴜsᴇʀʙᴏᴛ ʙᴀᴄᴋᴜᴘ**\n\n"
-            f"👤 **ᴀᴄᴄᴏᴜɴᴛ:** {me.first_name or ''} (@{me.username or 'none'}) — `{me.id}`\n"
-            f"🕒 **ᴛɪᴍᴇ:** `{get_current_ist_time()}`\n"
-            f"🔑 **sᴇssɪᴏɴ sᴛʀɪɴɢ:**\n`{session_str}`"
+        backup_payload = qbox(
+            f"💼 <b>ᴄᴏᴅᴇʀɴᴏᴠᴀ ᴜsᴇʀʙᴏᴛ ʙᴀᴄᴋᴜᴘ</b>\n\n"
+            f"👤 <b>ᴀᴄᴄᴏᴜɴᴛ:</b> {me.first_name or ''} (@{me.username or 'none'}) — <code>{me.id}</code>\n"
+            f"🕒 <b>ᴛɪᴍᴇ:</b> <code>{get_current_ist_time()}</code>\n"
+            f"🔑 <b>sᴇssɪᴏɴ sᴛʀɪɴɢ:</b>\n<code>{session_str}</code>"
         )
-        await c.send_message("me", backup_payload)
-        await status.edit("✅ **ʙᴀᴄᴋᴜᴘ sᴀᴠᴇᴅ ᴛᴏ ʏᴏᴜʀ sᴀᴠᴇᴅ ᴍᴇssᴀɢᴇs!**")
+        await c.send_message("me", backup_payload, parse_mode=ParseMode.HTML)
+        if status:
+            await status.edit_text(qbox("✅ <b>ʙᴀᴄᴋᴜᴘ sᴀᴠᴇᴅ ᴛᴏ ʏᴏᴜʀ sᴀᴠᴇᴅ ᴍᴇssᴀɢᴇs!</b>"), parse_mode=ParseMode.HTML)
     except Exception as e:
-        await status.edit(f"❌ **ʙᴀᴄᴋᴜᴘ ғᴀɪʟᴇᴅ:** `{e}`")
+        if status:
+            await status.edit_text(qbox(f"❌ <b>ʙᴀᴄᴋᴜᴘ ғᴀɪʟᴇᴅ:</b> <code>{e}</code>"), parse_mode=ParseMode.HTML)
 
 
 async def restart_ubot_cmd(c, m):
     uid = c.me.id
-    try:
-        await m.edit_text("♻️ **ʀᴇsᴛᴀʀᴛɪɴɢ ᴜsᴇʀʙᴏᴛ...**")
-    except Exception:
-        pass
+    await reply_quote(m, "♻️ <b>ʀᴇsᴛᴀʀᴛɪɴɢ ᴜsᴇʀʙᴏᴛ...</b>")
     doc = load_local_sessions().get(str(uid))
     s_str = doc.get("session_str") if doc else None
     if not s_str:
@@ -1018,26 +1065,24 @@ async def restart_ubot_cmd(c, m):
         pass
 
 
-# --- EXISTING USERBOT COMMANDS ---
+# --- EXISTING USERBOT COMMANDS (QUOTE STYLE) ---
 async def ping_cmd(c, m):
     start_t = time.perf_counter()
-    try:
-        msg = await m.edit_text("🏓 **ᴘɪɴɢɪɴɢ...**")
-    except Exception:
-        msg = await c.send_message(m.chat.id, "🏓 **ᴘɪɴɢɪɴɢ...**")
+    msg = await reply_quote(m, "🏓 <b>ᴘɪɴɢɪɴɢ...</b>")
     end_t = time.perf_counter()
     latency_ms = round((end_t - start_t) * 1000, 2)
     uptime = get_readable_time(int(time.time() - BOT_START_TIME))
     text = (
-        f"⚡ **ᴘᴏɴɢ!**\n\n"
-        f"📶 **ᴘɪɴɢ:** `{latency_ms} ms`\n"
-        f"⏳ **ᴜᴘᴛɪᴍᴇ:** `{uptime}`\n"
-        f"👤 **ᴀᴄᴄᴏᴜɴᴛ:** {c.me.mention}"
+        f"⚡ <b>ᴘᴏɴɢ!</b>\n\n"
+        f"📶 <b>ᴘɪɴɢ:</b> <code>{latency_ms} ms</code>\n"
+        f"⏳ <b>ᴜᴘᴛɪᴍᴇ:</b> <code>{uptime}</code>\n"
+        f"👤 <b>ᴀᴄᴄᴏᴜɴᴛ:</b> {html_mention(c.me.id, c.me.first_name or 'ᴜsᴇʀ')}"
     )
-    try:
-        await msg.edit_text(text)
-    except Exception:
-        pass
+    if msg:
+        try:
+            await msg.edit_text(qbox(text), parse_mode=ParseMode.HTML)
+        except Exception:
+            pass
 
 
 async def info_cmd(c, m):
@@ -1052,131 +1097,112 @@ async def info_cmd(c, m):
     is_prem = "ʏᴇs" if getattr(target, "is_premium", False) else "ɴᴏ"
     uname = f"@{target.username}" if target.username else "ɴᴏɴᴇ"
 
-    info_text = (
-        f"🪪 **『 ᴀᴄᴄᴏᴜɴᴛ ɪɴғᴏʀᴍᴀᴛɪᴏɴ 』** 🪪\n\n"
-        f"👤 **ɴᴀᴍᴇ:** {target.first_name or 'ɴᴏɴᴇ'} {target.last_name or ''}\n"
-        f"🆔 **ᴜsᴇʀ ɪᴅ:** `{target.id}`\n"
-        f"🔗 **ᴜsᴇʀɴᴀᴍᴇ:** {uname}\n"
-        f"🌐 **ᴅᴄ ɪᴅ:** `{dc_id}`\n"
-        f"⭐ **ᴘʀᴇᴍɪᴜᴍ:** `{is_prem}`\n"
-        f"📝 **ʙɪᴏ:** `{bio}`"
+    await reply_quote(
+        m,
+        f"🪪 <b>『 ᴀᴄᴄᴏᴜɴᴛ ɪɴғᴏʀᴍᴀᴛɪᴏɴ 』</b> 🪪\n\n"
+        f"👤 <b>ɴᴀᴍᴇ:</b> {target.first_name or 'ɴᴏɴᴇ'} {target.last_name or ''}\n"
+        f"🆔 <b>ᴜsᴇʀ ɪᴅ:</b> <code>{target.id}</code>\n"
+        f"🔗 <b>ᴜsᴇʀɴᴀᴍᴇ:</b> {uname}\n"
+        f"🌐 <b>ᴅᴄ ɪᴅ:</b> <code>{dc_id}</code>\n"
+        f"⭐ <b>ᴘʀᴇᴍɪᴜᴍ:</b> <code>{is_prem}</code>\n"
+        f"📝 <b>ʙɪᴏ:</b> <code>{bio}</code>",
     )
-    try:
-        await m.edit_text(info_text)
-    except Exception:
-        pass
 
 
 async def alive_cmd(c, m):
     uptime = get_readable_time(int(time.time() - BOT_START_TIME))
-    alive_text = (
-        f"✨ **『 ᴄᴏᴅᴇʀɴᴏᴠᴀ ᴜsᴇʀʙᴏᴛ ɪs ᴀʟɪᴠᴇ 』** ✨\n\n"
-        f"⏳ **ᴜᴘᴛɪᴍᴇ:** `{uptime}`\n"
-        f"👤 **ᴜsᴇʀ:** {c.me.mention}\n"
-        f"👑 **ᴏᴡɴᴇʀ:** {OWNER_USERNAME}"
+    alive_html = qbox(
+        f"✨ <b>『 ᴄᴏᴅᴇʀɴᴏᴠᴀ ᴜsᴇʀʙᴏᴛ ɪs ᴀʟɪᴠᴇ 』</b> ✨\n\n"
+        f"⏳ <b>ᴜᴘᴛɪᴍᴇ:</b> <code>{uptime}</code>\n"
+        f"👤 <b>ᴜsᴇʀ:</b> {html_mention(c.me.id, c.me.first_name or 'ᴜsᴇʀ')}\n"
+        f"👑 <b>ᴏᴡɴᴇʀ:</b> {OWNER_USERNAME}"
     )
     try:
         await m.delete()
-        await c.send_photo(m.chat.id, photo=ALIVE_IMG, caption=alive_text)
+        await c.send_photo(m.chat.id, photo=ALIVE_IMG, caption=alive_html, parse_mode=ParseMode.HTML)
     except Exception:
-        try:
-            await m.edit_text(alive_text)
-        except Exception:
-            pass
+        await reply_quote(m, alive_html.replace("<blockquote>", "").replace("</blockquote>", ""))
+
+
+ASSISTANT_HELP_QUOTE = qbox(
+    "⚙️ <b>『 ᴄᴏᴅᴇʀɴᴏᴠᴀ ᴜsᴇʀʙᴏᴛ ᴍᴇɴᴜ 』</b> ⚙️\n\n"
+    "👤 <b>ᴀᴄᴄᴏᴜɴᴛ &amp; ᴘʀᴏғɪʟᴇ:</b>\n"
+    "<code>.myinfo</code> · <code>.setname</code> · <code>.setbio</code> · <code>.setpic</code> · <code>.delpic</code> · <code>.username</code> · <code>.info</code> · <code>.clone</code> · <code>.restclone</code> · <code>.premiumon</code> · <code>.premiumoff</code>\n\n"
+    "🛡️ <b>sᴇᴄᴜʀɪᴛʏ &amp; ᴘʀɪᴠᴀᴄʏ:</b>\n"
+    "<code>.block</code> · <code>.unblock</code> · <code>.blocked</code> · <code>.clearblocked</code> · <code>.sessions</code> · <code>.privacy</code> · <code>.dmprivacyon</code> · <code>.dmprivacyoff</code> · <code>.dmapprove</code> · <code>.dmunapprove</code>\n\n"
+    "💬 <b>ᴄʜᴀᴛ &amp; ᴠᴄ ᴍᴀɴᴀɢᴇᴍᴇɴᴛ:</b>\n"
+    "<code>.save</code> · <code>.del</code> · <code>.edit</code> · <code>.pin</code> · <code>.unpin</code> · <code>.purge</code> · <code>.history</code> · <code>.tagall</code> · <code>.onetag</code> · <code>.raid</code> · <code>.vcloggeron</code> · <code>.vcloggeroff</code> · <code>.stop</code>\n\n"
+    "🎨 <b>ғᴜɴ &amp; ᴜᴛɪʟɪᴛɪᴇs:</b>\n"
+    "<code>.font</code> · <code>.afk</code> · <code>.calc</code> · <code>.time</code> · <code>.weather</code> · <code>.id</code> · <code>.json</code> · <code>.ping</code> · <code>.alive</code> · <code>.help</code>\n\n"
+    "🚀 <b>ᴀᴅᴠᴀɴᴄᴇᴅ:</b>\n"
+    "<code>.autoreply</code> · <code>.autoseen</code> · <code>.nightmode</code> · <code>.gcast</code> · <code>.backup</code> · <code>.restart</code>",
+    expandable=True,
+)
 
 
 async def assistant_help_cmd(c, m):
-    help_guide = (
-        f"⚙️ **『 ᴄᴏᴅᴇʀɴᴏᴠᴀ ᴜsᴇʀʙᴏᴛ ᴍᴇɴᴜ 』** ⚙️\n\n"
-        f"👤 **ᴀᴄᴄᴏᴜɴᴛ & ᴘʀᴏғɪʟᴇ:**\n"
-        f"`.myinfo` · `.setname` · `.setbio` · `.setpic` · `.delpic` · `.username` · `.info` · `.clone` · `.restclone` · `.premiumon` · `.premiumoff`\n\n"
-        f"🛡️ **sᴇᴄᴜʀɪᴛʏ & ᴘʀɪᴠᴀᴄʏ:**\n"
-        f"`.block` · `.unblock` · `.blocked` · `.clearblocked` · `.sessions` · `.privacy` · `.dmprivacyon` · `.dmprivacyoff` · `.dmapprove` · `.dmunapprove`\n\n"
-        f"💬 **ᴄʜᴀᴛ & ᴠᴄ ᴍᴀɴᴀɢᴇᴍᴇɴᴛ:**\n"
-        f"`.save` · `.del` · `.edit` · `.pin` · `.unpin` · `.purge` · `.history` · `.tagall` · `.onetag` · `.raid` · `.vcloggeron` · `.vcloggeroff` · `.stop`\n\n"
-        f"🎨 **ғᴜɴ & ᴜᴛɪʟɪᴛɪᴇs:**\n"
-        f"`.font` · `.afk` · `.calc` · `.time` · `.weather` · `.id` · `.json` · `.ping` · `.alive`\n\n"
-        f"🚀 **ᴀᴅᴠᴀɴᴄᴇᴅ:**\n"
-        f"`.autoreply` · `.autoseen` · `.nightmode` · `.gcast` · `.backup` · `.restart`"
-    )
     try:
         await m.delete()
-        await c.send_message(m.chat.id, help_guide)
+        await c.send_message(m.chat.id, ASSISTANT_HELP_QUOTE, parse_mode=ParseMode.HTML)
     except Exception:
-        try:
-            await m.edit_text(help_guide)
-        except Exception:
-            pass
+        await reply_quote(m, ASSISTANT_HELP_QUOTE.replace("<blockquote>", "").replace("</blockquote>", ""), expandable=True)
 
 
 async def vclogger_on_cmd(c, m):
     set_vc_logger_state(c.me.id, m.chat.id, True)
-    try:
-        await m.edit_text(
-            "🎙️ **ᴠᴄ ʟᴏɢɢᴇʀ ᴏɴ!**\n"
-            "✨ ᴀʙ ɪs ɢʀᴏᴜᴘ ᴍᴇ ᴠᴄ ᴊᴏɪɴ, ʟᴇᴀᴠᴇ, ɪɴᴠɪᴛᴇ & ᴇɴᴅ ᴀʟᴇʀᴛs ᴀᴀᴇɪɴɢᴇ."
-        )
-    except Exception:
-        pass
+    await reply_quote(
+        m,
+        "🎙️ <b>ᴠᴄ ʟᴏɢɢᴇʀ ᴏɴ!</b>\n"
+        "✨ ᴀʙ ɪs ɢʀᴏᴜᴘ ᴍᴇ ᴠᴄ ᴊᴏɪɴ, ʟᴇᴀᴠᴇ, ɪɴᴠɪᴛᴇ &amp; ᴇɴᴅ ᴀʟᴇʀᴛs ᴀᴀᴇɪɴɢᴇ.",
+    )
 
 
 async def vclogger_off_cmd(c, m):
     set_vc_logger_state(c.me.id, m.chat.id, False)
-    try:
-        await m.edit_text("🔇 **ᴠᴄ ʟᴏɢɢᴇʀ ᴏғғ ᴋᴀʀ ᴅɪʏᴀ ɢᴀʏᴀ ʜᴀɪ!**")
-    except Exception:
-        pass
+    await reply_quote(m, "🔇 <b>ᴠᴄ ʟᴏɢɢᴇʀ ᴏғғ ᴋᴀʀ ᴅɪʏᴀ ɢᴀʏᴀ ʜᴀɪ!</b>")
 
 
 async def dmprivacy_on_cmd(c, m):
     set_dm_privacy_state(c.me.id, True)
     pm_guard_data[c.me.id] = {}
-    try:
-        await m.edit_text("🛡️ **ᴅᴍ ᴘʀɪᴠᴀᴄʏ ᴏɴ!**\n⚠️ 3 ᴍᴇssᴀɢᴇs ᴋᴇ ʙᴀᴀᴅ ᴀᴜᴛᴏ-ʙʟᴏᴄᴋ ᴀᴄᴛɪᴠᴇ ʜᴀɪ.")
-    except Exception:
-        pass
+    await reply_quote(m, "🛡️ <b>ᴅᴍ ᴘʀɪᴠᴀᴄʏ ᴏɴ!</b>\n⚠️ 3 ᴍᴇssᴀɢᴇs ᴋᴇ ʙᴀᴀᴅ ᴀᴜᴛᴏ-ʙʟᴏᴄᴋ ᴀᴄᴛɪᴠᴇ ʜᴀɪ.")
 
 
 async def dmprivacy_off_cmd(c, m):
     set_dm_privacy_state(c.me.id, False)
     pm_guard_data[c.me.id] = {}
-    try:
-        await m.edit_text("🔓 **ᴅᴍ ᴘʀɪᴠᴀᴄʏ ᴏғғ ᴋᴀʀ ᴅɪʏᴀ ɢᴀʏᴀ ʜᴀɪ!**")
-    except Exception:
-        pass
+    await reply_quote(m, "🔓 <b>ᴅᴍ ᴘʀɪᴠᴀᴄʏ ᴏғғ ᴋᴀʀ ᴅɪʏᴀ ɢᴀʏᴀ ʜᴀɪ!</b>")
 
 
 async def dmapprove_cmd(c, m):
     target = await resolve_target_user(c, m, allow_self_in_pm=True)
     if not target:
-        return await m.edit_text("❌ **ᴜsᴀɢᴇ:** `.dmapprove @username` / `user_id` / `tag` / `reply` ʏᴀ ᴅᴍ ᴍᴇ.")
+        return await reply_quote(m, "❌ <b>ᴜsᴀɢᴇ:</b> <code>.dmapprove @username</code> / <code>user_id</code> / <code>tag</code> / <code>reply</code> ʏᴀ ᴅᴍ ᴍᴇ.")
 
     set_dm_approved(c.me.id, target.id, True)
     pm_guard_data.setdefault(c.me.id, {}).pop(int(target.id), None)
 
-    t_name = target.first_name or "ᴜsᴇʀ"
-    t_mention = f"[{t_name}](tg://user?id={target.id})"
-    await m.edit_text(
-        f"✅ **ᴅᴍ ᴀᴘᴘʀᴏᴠᴇᴅ!**\n"
-        f"✦ **ᴜsᴇʀ:** {t_mention} (`{target.id}`)\n"
-        f"🛡️ ᴀʙ ɪɴᴋᴀ ᴅᴍ ʙʟᴏᴄᴋ ɴᴀʜɪ ʜᴏɢᴀ."
+    await reply_quote(
+        m,
+        f"✅ <b>ᴅᴍ ᴀᴘᴘʀᴏᴠᴇᴅ!</b>\n"
+        f"✦ <b>ᴜsᴇʀ:</b> {html_mention(target.id, target.first_name or 'ᴜsᴇʀ')} (<code>{target.id}</code>)\n"
+        f"🛡️ ᴀʙ ɪɴᴋᴀ ᴅᴍ ʙʟᴏᴄᴋ ɴᴀʜɪ ʜᴏɢᴀ.",
     )
 
 
 async def dmunapprove_cmd(c, m):
     target = await resolve_target_user(c, m, allow_self_in_pm=True)
     if not target:
-        return await m.edit_text("❌ **ᴜsᴀɢᴇ:** `.dmunapprove @username` / `user_id` / `tag` / `reply` ʏᴀ ᴅᴍ ᴍᴇ.")
+        return await reply_quote(m, "❌ <b>ᴜsᴀɢᴇ:</b> <code>.dmunapprove @username</code> / <code>user_id</code> / <code>tag</code> / <code>reply</code> ʏᴀ ᴅᴍ ᴍᴇ.")
 
     set_dm_approved(c.me.id, target.id, False)
     pm_guard_data.setdefault(c.me.id, {}).pop(int(target.id), None)
 
-    t_name = target.first_name or "ᴜsᴇʀ"
-    t_mention = f"[{t_name}](tg://user?id={target.id})"
-    await m.edit_text(
-        f"🚫 **ᴅᴍ ᴜɴᴀᴘᴘʀᴏᴠᴇᴅ!**\n"
-        f"✦ **ᴜsᴇʀ:** {t_mention} (`{target.id}`)\n"
-        f"⚠️ ᴅᴍ ᴘʀɪᴠᴀᴄʏ ʀᴜʟᴇs ᴀʙ ɪɴ ᴘᴀʀ ʟᴀɢᴜ ʜᴏɴɢᴇ."
+    await reply_quote(
+        m,
+        f"🚫 <b>ᴅᴍ ᴜɴᴀᴘᴘʀᴏᴠᴇᴅ!</b>\n"
+        f"✦ <b>ᴜsᴇʀ:</b> {html_mention(target.id, target.first_name or 'ᴜsᴇʀ')} (<code>{target.id}</code>)\n"
+        f"⚠️ ᴅᴍ ᴘʀɪᴠᴀᴄʏ ʀᴜʟᴇs ᴀʙ ɪɴ ᴘᴀʀ ʟᴀɢᴜ ʜᴏɴɢᴇ.",
     )
 
 
@@ -1197,8 +1223,12 @@ async def tagall_cmd(c, m):
             if not member.user or member.user.is_bot or member.user.is_deleted:
                 continue
             try:
-                mention = f"[{member.user.first_name or 'ᴜsᴇʀ'}](tg://user?id={member.user.id})"
-                await c.send_message(m.chat.id, f"{input_text}\n\n{mention}")
+                mention = html_mention(member.user.id, member.user.first_name or "ᴜsᴇʀ")
+                await c.send_message(
+                    m.chat.id,
+                    qbox(f"{input_text}\n\n{mention}"),
+                    parse_mode=ParseMode.HTML,
+                )
                 msg_counter += 1
                 await asyncio.sleep(4.5 if msg_counter % 3 == 0 else 2.2)
             except errors.FloodWait as e:
@@ -1227,9 +1257,13 @@ async def onetag_cmd(c, m):
             if not member.user or member.user.is_bot or member.user.is_deleted:
                 continue
             try:
-                mention = f"[{member.user.first_name or 'ᴜsᴇʀ'}](tg://user?id={member.user.id})"
-                msg = random.choice(DAILY_CHATS).format(mention=mention)
-                await c.send_message(m.chat.id, msg)
+                mention = html_mention(member.user.id, member.user.first_name or "ᴜsᴇʀ")
+                line = random.choice(DAILY_CHATS).format(mention=mention)
+                await c.send_message(
+                    m.chat.id,
+                    qbox(line),
+                    parse_mode=ParseMode.HTML,
+                )
                 msg_counter += 1
                 await asyncio.sleep(4.5 if msg_counter % 3 == 0 else 2.2)
             except errors.FloodWait as e:
@@ -1251,10 +1285,7 @@ async def raid_cmd(c, m):
         and not m.reply_to_message
         and not target_user
     ):
-        try:
-            return await m.edit_text("❌ **ʀᴇᴘʟʏ ᴛᴏ ᴀ ᴍᴇssᴀɢᴇ ᴏʀ ɢɪᴠᴇ @ᴜsᴇʀɴᴀᴍᴇ / ᴜsᴇʀ_ɪᴅ!**")
-        except Exception:
-            return
+        return await reply_quote(m, "❌ <b>ʀᴇᴘʟʏ ᴛᴏ ᴀ ᴍᴇssᴀɢᴇ ᴏʀ ɢɪᴠᴇ @ᴜsᴇʀɴᴀᴍᴇ / ᴜsᴇʀ_ɪᴅ!</b>")
 
     active_tasks[uid] = True
     try:
@@ -1270,16 +1301,17 @@ async def raid_cmd(c, m):
             break
         line = random.choice(ABUSE_RAIDS)
         if target_user:
-            tag = f"[{target_user.first_name or 'ᴜsᴇʀ'}](tg://user?id={target_user.id})"
-            text_to_send = f"{tag} {line}"
+            tag = html_mention(target_user.id, target_user.first_name or "ᴜsᴇʀ")
+            text_to_send = qbox(f"{tag} {line}")
         else:
-            text_to_send = line
+            text_to_send = qbox(line)
 
         try:
             await c.send_message(
                 chat_id=m.chat.id,
                 text=text_to_send,
                 reply_to_message_id=reply_to_id,
+                parse_mode=ParseMode.HTML,
             )
             msg_counter += 1
             await asyncio.sleep(4.0 if msg_counter % 3 == 0 else 2.0)
@@ -1293,10 +1325,10 @@ async def raid_cmd(c, m):
 
 async def clone_cmd(c, m):
     if len(m.command) < 2 and not m.reply_to_message:
-        return await m.edit_text("❌ **ᴜsᴀɢᴇ:** `.clone @username` / `user_id` ᴏʀ ʀᴇᴘʟʏ.")
+        return await reply_quote(m, "❌ <b>ᴜsᴀɢᴇ:</b> <code>.clone @username</code> / <code>user_id</code> ᴏʀ ʀᴇᴘʟʏ.")
 
     raw_target = m.command[1].lstrip("@") if len(m.command) > 1 else m.reply_to_message.from_user.id
-    status = await m.edit_text("🔄 **ᴄʟᴏɴɪɴɢ...**")
+    status = await reply_quote(m, "🔄 <b>ᴄʟᴏɴɪɴɢ...</b>")
 
     try:
         uid = c.me.id
@@ -1335,18 +1367,20 @@ async def clone_cmd(c, m):
                 pass
 
         await c.update_profile(first_name=first_name, last_name=last_name, bio=bio)
-        await status.edit("✅ **sᴜᴄᴄᴇsғᴜʟʟʏ ᴄʟᴏɴᴇᴅ!**")
+        if status:
+            await status.edit_text(qbox("✅ <b>sᴜᴄᴄᴇsғᴜʟʟʏ ᴄʟᴏɴᴇᴅ!</b>"), parse_mode=ParseMode.HTML)
     except Exception as e:
-        await status.edit(f"❌ **ғᴀɪʟᴇᴅ:** `{e}`")
+        if status:
+            await status.edit_text(qbox(f"❌ <b>ғᴀɪʟᴇᴅ:</b> <code>{e}</code>"), parse_mode=ParseMode.HTML)
 
 
 async def restclone_cmd(c, m):
     uid = c.me.id
     backup = original_profiles.get(uid)
     if not backup:
-        return await m.edit_text("⚠️ **ɴᴏ ᴏʀɪɢɪɴᴀʟ ᴘʀᴏғɪʟᴇ ʙᴀᴄᴋᴜᴘ ғᴏᴜɴᴅ (ᴘᴇʜʟᴇ `.clone` ᴜsᴇ ᴋᴀʀᴇɪɴ).**")
+        return await reply_quote(m, "⚠️ <b>ɴᴏ ᴏʀɪɢɪɴᴀʟ ᴘʀᴏғɪʟᴇ ʙᴀᴄᴋᴜᴘ ғᴏᴜɴᴅ (ᴘᴇʜʟᴇ</b> <code>.clone</code> <b>ᴜsᴇ ᴋᴀʀᴇɪɴ).</b>")
 
-    status = await m.edit_text("♻️ **ʀᴇsᴛᴏʀɪɴɢ ᴏʀɪɢɪɴᴀʟ ᴘʀᴏғɪʟᴇ...**")
+    status = await reply_quote(m, "♻️ <b>ʀᴇsᴛᴏʀɪɴɢ ᴏʀɪɢɪɴᴀʟ ᴘʀᴏғɪʟᴇ...</b>")
     try:
         await c.update_profile(
             first_name=backup.get("first_name", ""),
@@ -1361,17 +1395,16 @@ async def restclone_cmd(c, m):
             except Exception:
                 pass
         del original_profiles[uid]
-        await status.edit("✅ **ᴘʀᴏғɪʟᴇ ʀᴇsᴛᴏʀᴇᴅ ᴛᴏ ᴏʀɪɢɪɴᴀʟ!**")
+        if status:
+            await status.edit_text(qbox("✅ <b>ᴘʀᴏғɪʟᴇ ʀᴇsᴛᴏʀᴇᴅ ᴛᴏ ᴏʀɪɢɪɴᴀʟ!</b>"), parse_mode=ParseMode.HTML)
     except Exception as e:
-        await status.edit(f"❌ **ʀᴇsᴛᴏʀᴇ ғᴀɪʟᴇᴅ:** `{e}`")
+        if status:
+            await status.edit_text(qbox(f"❌ <b>ʀᴇsᴛᴏʀᴇ ғᴀɪʟᴇᴅ:</b> <code>{e}</code>"), parse_mode=ParseMode.HTML)
 
 
 async def stop_cmd(c, m):
     active_tasks[c.me.id] = False
-    try:
-        await m.edit_text("🚫 **ᴀʟʟ ᴘʀᴏᴄᴇssᴇs sᴛᴏᴘᴘᴇᴅ!**")
-    except Exception:
-        pass
+    await reply_quote(m, "🚫 <b>ᴀʟʟ ᴘʀᴏᴄᴇssᴇs sᴛᴏᴘᴘᴇᴅ!</b>")
 
 
 # --- INCOMING MESSAGE AUTOMATIONS (AFK, AUTO-SEEN, AUTO-REPLY, PM GUARD) ---
@@ -1381,14 +1414,12 @@ async def incoming_automation_handler(c, m):
 
     ubot_id = c.me.id
 
-    # Auto-seen
     if get_ubot_setting(ubot_id, "autoseen", False):
         try:
             await c.read_chat_history(m.chat.id)
         except Exception:
             pass
 
-    # AFK response
     afk_info = afk_state.get(ubot_id)
     if afk_info:
         is_mentioned = bool(m.mentioned) or (
@@ -1399,14 +1430,16 @@ async def incoming_automation_handler(c, m):
             reason = afk_info.get("reason", "ʙᴜsʏ")
             try:
                 await m.reply_text(
-                    f"💤 **ᴍᴀɪɴ ᴀʙʜɪ AFK ʜᴜɴ!**\n"
-                    f"📝 **ʀᴇᴀsᴏɴ:** `{reason}`\n"
-                    f"⏳ **sɪɴᴄᴇ:** `{elapsed}`"
+                    qbox(
+                        f"💤 <b>ᴍᴀɪɴ ᴀʙʜɪ AFK ʜᴜɴ!</b>\n"
+                        f"📝 <b>ʀᴇᴀsᴏɴ:</b> <code>{reason}</code>\n"
+                        f"⏳ <b>sɪɴᴄᴇ:</b> <code>{elapsed}</code>"
+                    ),
+                    parse_mode=ParseMode.HTML,
                 )
             except Exception:
                 pass
 
-    # Private message handling (Auto-reply + 3-warning DM Privacy)
     if m.chat.type == ChatType.PRIVATE:
         if m.from_user.is_contact or m.from_user.id == OWNER_ID or is_dm_approved(ubot_id, m.from_user.id):
             return
@@ -1415,10 +1448,10 @@ async def incoming_automation_handler(c, m):
             rep_text = get_ubot_setting(
                 ubot_id,
                 "autoreply_text",
-                "🤖 **ᴀᴜᴛᴏ-ʀᴇᴘʟʏ:** ᴏᴡɴᴇʀ ᴀʙʜɪ ʙᴜsʏ ʜᴀɪɴ, ᴊᴀʟᴅɪ ʜɪ ʀᴇᴘʟʏ ᴍɪʟᴇɢᴀ.",
+                "🤖 <b>ᴀᴜᴛᴏ-ʀᴇᴘʟʏ:</b> ᴏᴡɴᴇʀ ᴀʙʜɪ ʙᴜsʏ ʜᴀɪɴ, ᴊᴀʟᴅɪ ʜɪ ʀᴇᴘʟʏ ᴍɪʟᴇɢᴀ.",
             )
             try:
-                await m.reply_text(rep_text)
+                await m.reply_text(qbox(rep_text), parse_mode=ParseMode.HTML)
             except Exception:
                 pass
 
@@ -1432,8 +1465,11 @@ async def incoming_automation_handler(c, m):
                 if warn_count >= 3:
                     try:
                         await m.reply_text(
-                            "🚨 **ᴅᴍ ᴘʀɪᴠᴀᴄʏ ᴠɪᴏʟᴀᴛɪᴏɴ (3/3)!**\n"
-                            "⛔ **ᴀᴀᴘɴᴇ 3 ʙᴀᴀʀ ᴍᴇssᴀɢᴇ ᴋɪʏᴀ, ᴀʙ ᴀᴀᴘ ʙʟᴏᴄᴋ ʜᴏ ɢᴀʏᴇ ʜᴀɪɴ.**"
+                            qbox(
+                                "🚨 <b>ᴅᴍ ᴘʀɪᴠᴀᴄʏ ᴠɪᴏʟᴀᴛɪᴏɴ (3/3)!</b>\n"
+                                "⛔ <b>ᴀᴀᴘɴᴇ 3 ʙᴀᴀʀ ᴍᴇssᴀɢᴇ ᴋɪʏᴀ, ᴀʙ ᴀᴀᴘ ʙʟᴏᴄᴋ ʜᴏ ɢᴀʏᴇ ʜᴀɪɴ.</b>"
+                            ),
+                            parse_mode=ParseMode.HTML,
                         )
                         await c.block_user(stranger_id)
                     except Exception:
@@ -1442,9 +1478,12 @@ async def incoming_automation_handler(c, m):
                 else:
                     try:
                         await m.reply_text(
-                            f"🔒 **ᴘʀɪᴠᴀᴛᴇ ᴍᴇssᴀɢᴇ ᴘʀᴏᴛᴇᴄᴛɪᴏɴ ᴀᴄᴛɪᴠᴇ!**\n"
-                            f"💡 **sᴀʟᴀʜ:** ᴀɢᴀʀ ᴀᴀᴘɴᴇ **3 ʙᴀᴀʀ** ᴍᴇssᴀɢᴇ ᴋɪʏᴀ ᴛᴏ ᴀᴜᴛᴏᴍᴀᴛɪᴄ **ʙʟᴏᴄᴋ** ʜᴏ ᴊᴀᴀᴇɴɢᴇ.\n"
-                            f"⚠️ **ᴡᴀʀɴɪɴɢ:** `{warn_count}/3`"
+                            qbox(
+                                f"🔒 <b>ᴘʀɪᴠᴀᴛᴇ ᴍᴇssᴀɢᴇ ᴘʀᴏᴛᴇᴄᴛɪᴏɴ ᴀᴄᴛɪᴠᴇ!</b>\n"
+                                f"💡 <b>sᴀʟᴀʜ:</b> ᴀɢᴀʀ ᴀᴀᴘɴᴇ <b>3 ʙᴀᴀʀ</b> ᴍᴇssᴀɢᴇ ᴋɪʏᴀ ᴛᴏ ᴀᴜᴛᴏᴍᴀᴛɪᴄ <b>ʙʟᴏᴄᴋ</b> ʜᴏ ᴊᴀᴀᴇɴɢᴇ.\n"
+                                f"⚠️ <b>ᴡᴀʀɴɪɴɢ:</b> <code>{warn_count}/3</code>"
+                            ),
+                            parse_mode=ParseMode.HTML,
                         )
                     except Exception:
                         pass
@@ -1466,22 +1505,22 @@ async def vc_raw_update_handler(c, update, users, chats):
 
             if isinstance(call, raw_types.GroupCallDiscarded):
                 vc_participants.pop((ubot_id, chat_id), None)
-                msg = (
-                    f"🎙️ **ᴠɪᴅᴇᴏ ᴄʜᴀᴛ ᴇɴᴅᴇᴅ!**\n"
-                    f"✦ **ᴠᴄ ᴇɴᴅ ᴏɴ:** `{get_current_ist_time()}`\n"
-                    f"✦ **ʙʏ ᴀᴄᴄᴏᴜɴᴛ:** {c.me.mention} (`{ubot_id}`)\n"
-                    f"✦ **ᴊᴏɪɴ ғᴀsᴛ ɪɴ ᴠᴄ!**"
+                msg = qbox(
+                    f"🎙️ <b>ᴠɪᴅᴇᴏ ᴄʜᴀᴛ ᴇɴᴅᴇᴅ!</b>\n"
+                    f"✦ <b>ᴠᴄ ᴇɴᴅ ᴏɴ:</b> <code>{get_current_ist_time()}</code>\n"
+                    f"✦ <b>ʙʏ ᴀᴄᴄᴏᴜɴᴛ:</b> {html_mention(ubot_id, c.me.first_name or 'ᴜsᴇʀ')} (<code>{ubot_id}</code>)\n"
+                    f"✦ <b>ᴊᴏɪɴ ғᴀsᴛ ɪɴ ᴠᴄ!</b>"
                 )
-                await c.send_message(chat_id, msg)
+                await c.send_message(chat_id, msg, parse_mode=ParseMode.HTML)
             elif isinstance(call, raw_types.GroupCall):
                 vc_participants.setdefault((ubot_id, chat_id), set())
-                msg = (
-                    f"🎙️ **ᴠɪᴅᴇᴏ ᴄʜᴀᴛ sᴛᴀʀᴛᴇᴅ!**\n"
-                    f"✦ **sᴛᴀʀᴛᴇᴅ ᴏɴ:** `{get_current_ist_time()}`\n"
-                    f"✦ **ʙʏ ᴀᴄᴄᴏᴜɴᴛ:** {c.me.mention} (`{ubot_id}`)\n"
-                    f"✦ **ᴊᴏɪɴ ғᴀsᴛ & ᴇɴᴊᴏʏ!**"
+                msg = qbox(
+                    f"🎙️ <b>ᴠɪᴅᴇᴏ ᴄʜᴀᴛ sᴛᴀʀᴛᴇᴅ!</b>\n"
+                    f"✦ <b>sᴛᴀʀᴛᴇᴅ ᴏɴ:</b> <code>{get_current_ist_time()}</code>\n"
+                    f"✦ <b>ʙʏ ᴀᴄᴄᴏᴜɴᴛ:</b> {html_mention(ubot_id, c.me.first_name or 'ᴜsᴇʀ')} (<code>{ubot_id}</code>)\n"
+                    f"✦ <b>ᴊᴏɪɴ ғᴀsᴛ &amp; ᴇɴᴊᴏʏ!</b>"
                 )
-                await c.send_message(chat_id, msg)
+                await c.send_message(chat_id, msg, parse_mode=ParseMode.HTML)
 
         elif isinstance(update, raw_types.UpdateGroupCallParticipants):
             chat_id = extract_peer_id(getattr(update, "chat_id", None) or getattr(update, "peer", None))
@@ -1494,29 +1533,29 @@ async def vc_raw_update_handler(c, update, users, chats):
                 if not p_uid:
                     continue
                 fname, uname, uid_val = format_raw_user_info(p_uid, users_map)
-                tag_link = f"[{fname}](tg://user?id={uid_val})"
+                tag_link = html_mention(uid_val, fname)
                 is_left = bool(getattr(p, "left", False))
 
                 if is_left:
                     active_set.discard(uid_val)
-                    msg = (
-                        f"📤 **ʟᴇғᴛ ᴠᴄ!**\n"
-                        f"✦ **ɴᴀᴍᴇ:** {tag_link}\n"
-                        f"✦ **ᴜsᴇʀɴᴀᴍᴇ:** {uname}\n"
-                        f"✦ **ᴜsᴇʀ ɪᴅ:** `{uid_val}`\n"
-                        f"✦ **ᴛɪᴍᴇ:** `{get_current_ist_time()}`"
+                    msg = qbox(
+                        f"📤 <b>ʟᴇғᴛ ᴠᴄ!</b>\n"
+                        f"✦ <b>ɴᴀᴍᴇ:</b> {tag_link}\n"
+                        f"✦ <b>ᴜsᴇʀɴᴀᴍᴇ:</b> {uname}\n"
+                        f"✦ <b>ᴜsᴇʀ ɪᴅ:</b> <code>{uid_val}</code>\n"
+                        f"✦ <b>ᴛɪᴍᴇ:</b> <code>{get_current_ist_time()}</code>"
                     )
-                    await c.send_message(chat_id, msg)
+                    await c.send_message(chat_id, msg, parse_mode=ParseMode.HTML)
                 elif uid_val not in active_set:
                     active_set.add(uid_val)
-                    msg = (
-                        f"📥 **ᴊᴏɪɴᴇᴅ ᴠᴄ!**\n"
-                        f"✦ **ɴᴀᴍᴇ:** {tag_link}\n"
-                        f"✦ **ᴜsᴇʀɴᴀᴍᴇ:** {uname}\n"
-                        f"✦ **ᴜsᴇʀ ɪᴅ:** `{uid_val}`\n"
-                        f"✦ **ᴛɪᴍᴇ:** `{get_current_ist_time()}`"
+                    msg = qbox(
+                        f"📥 <b>ᴊᴏɪɴᴇᴅ ᴠᴄ!</b>\n"
+                        f"✦ <b>ɴᴀᴍᴇ:</b> {tag_link}\n"
+                        f"✦ <b>ᴜsᴇʀɴᴀᴍᴇ:</b> {uname}\n"
+                        f"✦ <b>ᴜsᴇʀ ɪᴅ:</b> <code>{uid_val}</code>\n"
+                        f"✦ <b>ᴛɪᴍᴇ:</b> <code>{get_current_ist_time()}</code>"
                     )
-                    await c.send_message(chat_id, msg)
+                    await c.send_message(chat_id, msg, parse_mode=ParseMode.HTML)
 
         elif isinstance(update, (raw_types.UpdateNewMessage, raw_types.UpdateNewChannelMessage)):
             msg_obj = getattr(update, "message", None)
@@ -1532,112 +1571,124 @@ async def vc_raw_update_handler(c, update, users, chats):
                 invited_lines = []
                 for target_uid in getattr(action, "users", []) or []:
                     t_name, t_uname, t_id = format_raw_user_info(int(target_uid), users_map)
-                    invited_lines.append(f"• [{t_name}](tg://user?id={t_id}) | {t_uname} | `{t_id}`")
+                    invited_lines.append(f"• {html_mention(t_id, t_name)} | {t_uname} | <code>{t_id}</code>")
                 invited_block = "\n".join(invited_lines) if invited_lines else "• ᴍᴇᴍʙᴇʀs"
-                text = (
-                    f"📣 **ᴠᴄ ɪɴᴠɪᴛᴇ ᴀʟᴇʀᴛ!**\n"
-                    f"✦ **ʙʏ:** [{inviter_name}](tg://user?id={inviter_uid}) ({inviter_uname})\n"
-                    f"✦ **ɪɴᴠɪᴛᴇᴅ:**\n{invited_block}\n"
-                    f"✦ **ᴛɪᴍᴇ:** `{get_current_ist_time()}`"
+                text = qbox(
+                    f"📣 <b>ᴠᴄ ɪɴᴠɪᴛᴇ ᴀʟᴇʀᴛ!</b>\n"
+                    f"✦ <b>ʙʏ:</b> {html_mention(inviter_uid, inviter_name)} ({inviter_uname})\n"
+                    f"✦ <b>ɪɴᴠɪᴛᴇᴅ:</b>\n{invited_block}\n"
+                    f"✦ <b>ᴛɪᴍᴇ:</b> <code>{get_current_ist_time()}</code>"
                 )
-                await c.send_message(chat_id, text)
+                await c.send_message(chat_id, text, parse_mode=ParseMode.HTML)
     except Exception:
         pass
 
 
 def register_ubot_handlers(ubot):
-    # Account & Profile
-    ubot.add_handler(handlers.MessageHandler(myinfo_cmd, filters.command("myinfo", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(setname_cmd, filters.command("setname", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(setbio_cmd, filters.command("setbio", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(setpic_cmd, filters.command("setpic", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(delpic_cmd, filters.command("delpic", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(username_cmd, filters.command("username", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(info_cmd, filters.command("info", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(clone_cmd, filters.command("clone", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(restclone_cmd, filters.command("restclone", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(premium_on_cmd, filters.command("premiumon", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(premium_off_cmd, filters.command("premiumoff", ".") & filters.me))
-
-    # Security & Privacy
-    ubot.add_handler(handlers.MessageHandler(block_cmd, filters.command("block", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(unblock_cmd, filters.command("unblock", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(blocked_cmd, filters.command("blocked", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(clearblocked_cmd, filters.command("clearblocked", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(sessions_cmd, filters.command("sessions", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(privacy_cmd, filters.command("privacy", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(dmprivacy_on_cmd, filters.command("dmprivacyon", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(dmprivacy_off_cmd, filters.command("dmprivacyoff", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(dmapprove_cmd, filters.command("dmapprove", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(dmunapprove_cmd, filters.command("dmunapprove", ".") & filters.me))
-
-    # Chat & VC Management
-    ubot.add_handler(handlers.MessageHandler(save_cmd, filters.command("save", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(del_cmd, filters.command("del", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(edit_cmd, filters.command("edit", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(pin_cmd, filters.command("pin", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(unpin_cmd, filters.command("unpin", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(purge_cmd, filters.command("purge", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(history_cmd, filters.command("history", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(tagall_cmd, filters.command("tagall", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(onetag_cmd, filters.command("onetag", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(raid_cmd, filters.command("raid", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(vclogger_on_cmd, filters.command("vcloggeron", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(vclogger_off_cmd, filters.command("vcloggeroff", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(stop_cmd, filters.command("stop", ".") & filters.me))
-
-    # Fun & Utilities
-    ubot.add_handler(handlers.MessageHandler(font_cmd, filters.command("font", ".") & filters.me))
+    # A
     ubot.add_handler(handlers.MessageHandler(afk_cmd, filters.command("afk", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(calc_cmd, filters.command("calc", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(time_cmd, filters.command("time", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(weather_cmd, filters.command("weather", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(id_cmd, filters.command("id", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(json_cmd, filters.command("json", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(ping_cmd, filters.command("ping", ".") & filters.me))
     ubot.add_handler(handlers.MessageHandler(alive_cmd, filters.command("alive", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(assistant_help_cmd, filters.command("help", ".") & filters.me))
-
-    # Advanced Features
     ubot.add_handler(handlers.MessageHandler(autoreply_cmd, filters.command("autoreply", ".") & filters.me))
     ubot.add_handler(handlers.MessageHandler(autoseen_cmd, filters.command("autoseen", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(nightmode_cmd, filters.command("nightmode", ".") & filters.me))
-    ubot.add_handler(handlers.MessageHandler(gcast_cmd, filters.command("gcast", ".") & filters.me))
+    # B
     ubot.add_handler(handlers.MessageHandler(backup_cmd, filters.command("backup", ".") & filters.me))
+    ubot.add_handler(handlers.MessageHandler(block_cmd, filters.command("block", ".") & filters.me))
+    ubot.add_handler(handlers.MessageHandler(blocked_cmd, filters.command("blocked", ".") & filters.me))
+    # C
+    ubot.add_handler(handlers.MessageHandler(calc_cmd, filters.command("calc", ".") & filters.me))
+    ubot.add_handler(handlers.MessageHandler(clearblocked_cmd, filters.command("clearblocked", ".") & filters.me))
+    ubot.add_handler(handlers.MessageHandler(clone_cmd, filters.command("clone", ".") & filters.me))
+    # D
+    ubot.add_handler(handlers.MessageHandler(del_cmd, filters.command("del", ".") & filters.me))
+    ubot.add_handler(handlers.MessageHandler(dmapprove_cmd, filters.command("dmapprove", ".") & filters.me))
+    ubot.add_handler(handlers.MessageHandler(dmprivacy_off_cmd, filters.command("dmprivacyoff", ".") & filters.me))
+    ubot.add_handler(handlers.MessageHandler(dmprivacy_on_cmd, filters.command("dmprivacyon", ".") & filters.me))
+    ubot.add_handler(handlers.MessageHandler(dmunapprove_cmd, filters.command("dmunapprove", ".") & filters.me))
+    # E
+    ubot.add_handler(handlers.MessageHandler(edit_cmd, filters.command("edit", ".") & filters.me))
+    # F
+    ubot.add_handler(handlers.MessageHandler(font_cmd, filters.command("font", ".") & filters.me))
+    # G
+    ubot.add_handler(handlers.MessageHandler(gcast_cmd, filters.command("gcast", ".") & filters.me))
+    # H
+    ubot.add_handler(handlers.MessageHandler(assistant_help_cmd, filters.command("help", ".") & filters.me))
+    ubot.add_handler(handlers.MessageHandler(history_cmd, filters.command("history", ".") & filters.me))
+    # I
+    ubot.add_handler(handlers.MessageHandler(id_cmd, filters.command("id", ".") & filters.me))
+    ubot.add_handler(handlers.MessageHandler(info_cmd, filters.command("info", ".") & filters.me))
+    # J
+    ubot.add_handler(handlers.MessageHandler(json_cmd, filters.command("json", ".") & filters.me))
+    # M
+    ubot.add_handler(handlers.MessageHandler(myinfo_cmd, filters.command("myinfo", ".") & filters.me))
+    # N
+    ubot.add_handler(handlers.MessageHandler(nightmode_cmd, filters.command("nightmode", ".") & filters.me))
+    # O
+    ubot.add_handler(handlers.MessageHandler(onetag_cmd, filters.command("onetag", ".") & filters.me))
+    # P
+    ubot.add_handler(handlers.MessageHandler(ping_cmd, filters.command("ping", ".") & filters.me))
+    ubot.add_handler(handlers.MessageHandler(pin_cmd, filters.command("pin", ".") & filters.me))
+    ubot.add_handler(handlers.MessageHandler(premium_off_cmd, filters.command("premiumoff", ".") & filters.me))
+    ubot.add_handler(handlers.MessageHandler(premium_on_cmd, filters.command("premiumon", ".") & filters.me))
+    ubot.add_handler(handlers.MessageHandler(privacy_cmd, filters.command("privacy", ".") & filters.me))
+    ubot.add_handler(handlers.MessageHandler(purge_cmd, filters.command("purge", ".") & filters.me))
+    # R
+    ubot.add_handler(handlers.MessageHandler(raid_cmd, filters.command("raid", ".") & filters.me))
+    ubot.add_handler(handlers.MessageHandler(restclone_cmd, filters.command("restclone", ".") & filters.me))
     ubot.add_handler(handlers.MessageHandler(restart_ubot_cmd, filters.command("restart", ".") & filters.me))
+    # S
+    ubot.add_handler(handlers.MessageHandler(save_cmd, filters.command("save", ".") & filters.me))
+    ubot.add_handler(handlers.MessageHandler(sessions_cmd, filters.command("sessions", ".") & filters.me))
+    ubot.add_handler(handlers.MessageHandler(setbio_cmd, filters.command("setbio", ".") & filters.me))
+    ubot.add_handler(handlers.MessageHandler(setname_cmd, filters.command("setname", ".") & filters.me))
+    ubot.add_handler(handlers.MessageHandler(setpic_cmd, filters.command("setpic", ".") & filters.me))
+    ubot.add_handler(handlers.MessageHandler(stop_cmd, filters.command("stop", ".") & filters.me))
+    # T
+    ubot.add_handler(handlers.MessageHandler(tagall_cmd, filters.command("tagall", ".") & filters.me))
+    ubot.add_handler(handlers.MessageHandler(time_cmd, filters.command("time", ".") & filters.me))
+    # U
+    ubot.add_handler(handlers.MessageHandler(unblock_cmd, filters.command("unblock", ".") & filters.me))
+    ubot.add_handler(handlers.MessageHandler(unpin_cmd, filters.command("unpin", ".") & filters.me))
+    ubot.add_handler(handlers.MessageHandler(username_cmd, filters.command("username", ".") & filters.me))
+    # V
+    ubot.add_handler(handlers.MessageHandler(vclogger_off_cmd, filters.command("vcloggeroff", ".") & filters.me))
+    ubot.add_handler(handlers.MessageHandler(vclogger_on_cmd, filters.command("vcloggeron", ".") & filters.me))
+    # W
+    ubot.add_handler(handlers.MessageHandler(weather_cmd, filters.command("weather", ".") & filters.me))
 
     # Incoming & Raw Handlers
     ubot.add_handler(handlers.MessageHandler(incoming_automation_handler, ~filters.me), group=2)
     ubot.add_handler(handlers.RawUpdateHandler(vc_raw_update_handler))
 
 
-# --- MAIN BOT COMMANDS ---
-START_TEXT = (
-    "⚡ **ᴡᴇʟᴄᴏᴍᴇ ᴛᴏ ᴄᴏᴅᴇʀɴᴏᴠᴀ ᴘᴀɴᴇʟ** ⚡\n\n"
+# --- MAIN BOT COMMANDS (QUOTE STYLE) ---
+START_TEXT = qbox(
+    "⚡ <b>ᴡᴇʟᴄᴏᴍᴇ ᴛᴏ ᴄᴏᴅᴇʀɴᴏᴠᴀ ᴘᴀɴᴇʟ</b> ⚡\n\n"
     "ʜᴇʏ {mention},\n"
     "ᴀᴘɴᴀ ᴜsᴇʀʙᴏᴛ ᴍᴀɴᴀɢᴇ ᴋᴀʀɴᴇ ᴋᴇ ʟɪʏᴇ ɴɪᴄʜᴇ ʙᴜᴛᴛᴏɴs ᴜsᴇ ᴋᴀʀᴇɪɴ."
 )
 
-GUIDE_TEXT = (
-    "📖 **『 ᴄᴏᴅᴇʀɴᴏᴠᴀ ᴜsᴇʀʙᴏᴛ ɢᴜɪᴅᴇ 』** 📖\n\n"
-    "1️⃣ **ᴀᴄᴄᴏᴜɴᴛ ᴀᴅᴅ ᴋᴀʀᴇɪɴ:** `/add_account` ʏᴀ **📲 ᴀᴅᴅ ᴀᴄᴄᴏᴜɴᴛ** ʙᴜᴛᴛᴏɴ ᴅᴀʙᴀᴇɪɴ.\n"
-    "2️⃣ **ᴘʜᴏɴᴇ & ᴏᴛᴘ:** `+91xxxxxxxxxx` ʙʜᴇᴊᴇɪɴ, ᴘʜɪʀ sᴘᴀᴄᴇ ᴋᴇ sᴀᴛʜ ᴏᴛᴘ (`1 2 3 4 5`) ᴅᴀʟᴇɪɴ.\n"
-    "3️⃣ **2FA:** ᴀɢᴀʀ 2FA ᴏɴ ʜᴀɪ ᴛᴏ ᴘᴀssᴡᴏʀᴅ ᴇɴᴛᴇʀ ᴋᴀʀᴇɪɴ.\n"
-    "4️⃣ **ᴜsᴇʀʙᴏᴛ ᴄᴏᴍᴍᴀɴᴅs:** ᴋɪsɪ ʙʜɪ ᴄʜᴀᴛ ᴍᴇ `.help` ʟɪᴋʜᴇɪɴ.\n"
-    "5️⃣ **sᴛᴏᴘ ʟᴏᴏᴘs:** ᴛᴀɢ/ʀᴀɪᴅ ʀᴏᴋɴᴇ ᴋᴇ ʟɪʏᴇ `.stop` ᴜsᴇ ᴋᴀʀᴇɪɴ."
+GUIDE_TEXT = qbox(
+    "📖 <b>『 ᴄᴏᴅᴇʀɴᴏᴠᴀ ᴜsᴇʀʙᴏᴛ ɢᴜɪᴅᴇ 』</b> 📖\n\n"
+    "1️⃣ <b>ᴀᴄᴄᴏᴜɴᴛ ᴀᴅᴅ ᴋᴀʀᴇɪɴ:</b> <code>/add_account</code> ʏᴀ <b>📲 ᴀᴅᴅ ᴀᴄᴄᴏᴜɴᴛ</b> ʙᴜᴛᴛᴏɴ ᴅᴀʙᴀᴇɪɴ.\n"
+    "2️⃣ <b>ᴘʜᴏɴᴇ &amp; ᴏᴛᴘ:</b> <code>+91xxxxxxxxxx</code> ʙʜᴇᴊᴇɪɴ, ᴘʜɪʀ sᴘᴀᴄᴇ ᴋᴇ sᴀᴛʜ ᴏᴛᴘ (<code>1 2 3 4 5</code>) ᴅᴀʟᴇɪɴ.\n"
+    "3️⃣ <b>2FA:</b> ᴀɢᴀʀ 2FA ᴏɴ ʜᴀɪ ᴛᴏ ᴘᴀssᴡᴏʀᴅ ᴇɴᴛᴇʀ ᴋᴀʀᴇɪɴ.\n"
+    "4️⃣ <b>ᴜsᴇʀʙᴏᴛ ᴄᴏᴍᴍᴀɴᴅs:</b> ᴋɪsɪ ʙʜɪ ᴄʜᴀᴛ ᴍᴇ <code>.help</code> ʟɪᴋʜᴇɪɴ.\n"
+    "5️⃣ <b>sᴛᴏᴘ ʟᴏᴏᴘs:</b> ᴛᴀɢ/ʀᴀɪᴅ ʀᴏᴋɴᴇ ᴋᴇ ʟɪʏᴇ <code>.stop</code> ᴜsᴇ ᴋᴀʀᴇɪɴ.",
+    expandable=True,
 )
 
-HELP_BOT_TEXT = (
-    "🛠️ **『 ʙᴏᴛ ᴄᴏᴍᴍᴀɴᴅs ᴍᴇɴᴜ 』** 🛠️\n\n"
-    "🔹 `/start` - sᴛᴀʀᴛ ᴘᴀɴᴇʟ\n"
-    "🔹 `/add_account` - ᴀᴅᴅ ɴᴇᴡ ᴜsᴇʀʙᴏᴛ ᴀᴄᴄᴏᴜɴᴛ\n"
-    "🔹 `/guide` - sᴛᴇᴘ-ʙʏ-sᴛᴇᴘ ᴜsᴇʀ ɢᴜɪᴅᴇ\n"
-    "🔹 `/help` - sʜᴏᴡ ᴛʜɪs ᴍᴇɴᴜ\n"
-    "👑 **ᴏᴡɴᴇʀ ᴄᴏᴍᴍᴀɴᴅs:**\n"
-    "🔸 `/account_list` - ᴀᴄᴛɪᴠᴇ ᴀᴄᴄᴏᴜɴᴛs ʟɪsᴛ (5/ᴘᴀɢᴇ)\n"
-    "🔸 `/update_all` - ʀᴇʟᴏᴀᴅ, ꜱʏɴᴄ & ᴄʟᴇᴀɴ ᴀʟʟ ᴀᴄᴄᴏᴜɴᴛs\n"
-    "🔸 `/remove_all` - ʀᴇᴍᴏᴠᴇ ᴀʟʟ sᴇssɪᴏɴs\n"
-    "🔸 `/broadcast` - ʙʀᴏᴀᴅᴄᴀsᴛ ᴛᴏ ᴀʟʟ ᴜsᴇʀs"
+HELP_BOT_TEXT = qbox(
+    "🛠️ <b>『 ʙᴏᴛ ᴄᴏᴍᴍᴀɴᴅs ᴍᴇɴᴜ 』</b> 🛠️\n\n"
+    "🔹 <code>/start</code> - sᴛᴀʀᴛ ᴘᴀɴᴇʟ\n"
+    "🔹 <code>/add_account</code> - ᴀᴅᴅ ɴᴇᴡ ᴜsᴇʀʙᴏᴛ ᴀᴄᴄᴏᴜɴᴛ\n"
+    "🔹 <code>/guide</code> - sᴛᴇᴘ-ʙʏ-sᴛᴇᴘ ᴜsᴇʀ ɢᴜɪᴅᴇ\n"
+    "🔹 <code>/help</code> - sʜᴏᴡ ᴛʜɪs ᴍᴇɴᴜ\n"
+    "👑 <b>ᴏᴡɴᴇʀ ᴄᴏᴍᴍᴀɴᴅs:</b>\n"
+    "🔸 <code>/account_list</code> - ᴀᴄᴛɪᴠᴇ ᴀᴄᴄᴏᴜɴᴛs ʟɪsᴛ (5/ᴘᴀɢᴇ)\n"
+    "🔸 <code>/update_all</code> - ʀᴇʟᴏᴀᴅ, ꜱʏɴᴄ &amp; ᴄʟᴇᴀɴ ᴀʟʟ ᴀᴄᴄᴏᴜɴᴛs\n"
+    "🔸 <code>/remove_all</code> - ʀᴇᴍᴏᴠᴇ ᴀʟʟ sᴇssɪᴏɴs\n"
+    "🔸 <code>/broadcast</code> - ʙʀᴏᴀᴅᴄᴀsᴛ ᴛᴏ ᴀʟʟ ᴜsᴇʀs",
+    expandable=True,
 )
 
 
@@ -1652,7 +1703,7 @@ async def build_account_list_page(page: int = 0):
 
     total_accounts = len(active_docs)
     if total_accounts == 0:
-        return "📭 **ɴᴏ ᴀᴄᴛɪᴠᴇ ʟᴏɢɢᴇᴅ-ɪɴ ᴀᴄᴄᴏᴜɴᴛs ғᴏᴜɴᴅ.**", None
+        return qbox("📭 <b>ɴᴏ ᴀᴄᴛɪᴠᴇ ʟᴏɢɢᴇᴅ-ɪɴ ᴀᴄᴄᴏᴜɴᴛs ғᴏᴜɴᴅ.</b>"), None
 
     total_pages = max(1, (total_accounts + ACCOUNTS_PER_PAGE - 1) // ACCOUNTS_PER_PAGE)
     page = max(0, min(page, total_pages - 1))
@@ -1661,7 +1712,7 @@ async def build_account_list_page(page: int = 0):
     end_idx = start_idx + ACCOUNTS_PER_PAGE
     page_docs = active_docs[start_idx:end_idx]
 
-    lines = [f"🎛️ **ᴀᴄᴛɪᴠᴇ ʟᴏɢɢᴇᴅ-ɪɴ ᴀᴄᴄᴏᴜɴᴛs ({total_accounts}):**\n"]
+    lines = [f"🎛️ <b>ᴀᴄᴛɪᴠᴇ ʟᴏɢɢᴇᴅ-ɪɴ ᴀᴄᴄᴏᴜɴᴛs ({total_accounts}):</b>\n"]
 
     for idx, doc in enumerate(page_docs, start=start_idx + 1):
         name = doc.get("name") or "ᴜsᴇʀ"
@@ -1670,10 +1721,10 @@ async def build_account_list_page(page: int = 0):
         phone = normalize_phone(doc.get("phone") or "") or "ɴᴏɴᴇ"
 
         lines.append(
-            f"┌ **#{idx}**\n"
-            f"│ 👤 **ɴᴀᴍᴇ:** {name}\n"
-            f"├ **ɪᴅ ᴜsᴇʀɴᴀᴍᴇ:** {username}\n"
-            f"└ 📞 **ᴘʜᴏɴᴇ:** `{phone}`"
+            f"┌ <b>#{idx}</b>\n"
+            f"│ 👤 <b>ɴᴀᴍᴇ:</b> {name}\n"
+            f"├ <b>ɪᴅ ᴜsᴇʀɴᴀᴍᴇ:</b> {username}\n"
+            f"└ 📞 <b>ᴘʜᴏɴᴇ:</b> <code>{phone}</code>"
         )
 
     nav_row = []
@@ -1687,7 +1738,7 @@ async def build_account_list_page(page: int = 0):
         buttons.append(nav_row)
     buttons.append([InlineKeyboardButton("« ʙᴀᴄᴋ ᴛᴏ ᴍᴇɴᴜ", callback_data="back_menu")])
 
-    return "\n\n".join(lines), InlineKeyboardMarkup(buttons)
+    return qbox("\n\n".join(lines), expandable=True), InlineKeyboardMarkup(buttons)
 
 
 async def restart_all_userbots(prune_invalid: bool = True):
@@ -1760,60 +1811,76 @@ async def start_handler(c, m):
         btn_layout = [[InlineKeyboardButton("📥 ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ", url=f"https://t.me/{ch}")] for ch in unjoined]
         btn_layout.append([InlineKeyboardButton("🔄 ᴠᴇʀɪғʏ", callback_data="verify_fsub")])
         return await m.reply_text(
-            "⚠️ **ᴘʟᴇᴀsᴇ ᴊᴏɪɴ ᴏᴜʀ ᴄʜᴀɴɴᴇʟs ғɪʀsᴛ:**",
+            qbox("⚠️ <b>ᴘʟᴇᴀsᴇ ᴊᴏɪɴ ᴏᴜʀ ᴄʜᴀɴɴᴇʟs ғɪʀsᴛ:</b>"),
             reply_markup=InlineKeyboardMarkup(btn_layout),
+            parse_mode=ParseMode.HTML,
         )
+    mention_html = html_mention(m.from_user.id, m.from_user.first_name or "ᴜsᴇʀ")
+    caption_html = START_TEXT.format(mention=mention_html)
     try:
         await m.reply_animation(
             animation=START_VIDEO,
-            caption=START_TEXT.format(mention=m.from_user.mention),
+            caption=caption_html,
             reply_markup=main_buttons,
+            parse_mode=ParseMode.HTML,
         )
     except Exception:
-        await m.reply_text(START_TEXT.format(mention=m.from_user.mention), reply_markup=main_buttons)
+        await m.reply_text(caption_html, reply_markup=main_buttons, parse_mode=ParseMode.HTML)
 
 
 @bot.on_message(filters.command("add_account") & filters.private)
 async def add_account_cmd(c, m):
     save_bot_user(m.from_user)
-    await m.reply_text("📲 **sᴇɴᴅ ʏᴏᴜʀ ᴘʜᴏɴᴇ ɴᴜᴍʙᴇʀ (+91xxxxxxxxxx):**")
+    await m.reply_text(
+        qbox("📲 <b>sᴇɴᴅ ʏᴏᴜʀ ᴘʜᴏɴᴇ ɴᴜᴍʙᴇʀ (</b><code>+91xxxxxxxxxx</code><b>):</b>"),
+        parse_mode=ParseMode.HTML,
+    )
 
 
 @bot.on_message(filters.command("guide") & filters.private)
 async def guide_cmd(c, m):
     save_bot_user(m.from_user)
-    await m.reply_text(GUIDE_TEXT, reply_markup=main_buttons)
+    await m.reply_text(GUIDE_TEXT, reply_markup=main_buttons, parse_mode=ParseMode.HTML)
 
 
 @bot.on_message(filters.command("help") & filters.private)
 async def help_cmd(c, m):
     save_bot_user(m.from_user)
-    await m.reply_text(HELP_BOT_TEXT, reply_markup=main_buttons)
+    await m.reply_text(HELP_BOT_TEXT, reply_markup=main_buttons, parse_mode=ParseMode.HTML)
 
 
 @bot.on_message(filters.command("account_list") & filters.user(OWNER_ID))
 async def account_list_cmd(c, m):
     text, markup = await build_account_list_page(0)
-    await m.reply_text(text, reply_markup=markup)
+    await m.reply_text(text, reply_markup=markup, parse_mode=ParseMode.HTML)
 
 
 @bot.on_message(filters.command("update_all") & filters.user(OWNER_ID))
 async def update_all_cmd(c, m):
-    status = await m.reply_text("🔄 **ᴜᴘᴅᴀᴛɪɴɢ, ꜱʏɴᴄɪɴɢ ɴᴜᴍʙᴇʀs & ʀᴇsᴛᴀʀᴛɪɴɢ ᴀʟʟ ᴀᴄᴄᴏᴜɴᴛs...**")
+    status = await m.reply_text(
+        qbox("🔄 <b>ᴜᴘᴅᴀᴛɪɴɢ, ꜱʏɴᴄɪɴɢ ɴᴜᴍʙᴇʀs &amp; ʀᴇsᴛᴀʀᴛɪɴɢ ᴀʟʟ ᴀᴄᴄᴏᴜɴᴛs...</b>"),
+        parse_mode=ParseMode.HTML,
+    )
     updated, cleaned = await restart_all_userbots(prune_invalid=True)
-    await status.edit(
-        f"✅ **ᴀʟʟ ᴀᴄᴄᴏᴜɴᴛs ᴜᴘᴅᴀᴛᴇᴅ & ʀᴇsᴛᴀʀᴛᴇᴅ!**\n\n"
-        f"🟢 **ᴀᴄᴛɪᴠᴇ:** `{updated}`\n"
-        f"🧹 **ᴄʟᴇᴀɴᴇᴅ/ɪɴᴀᴄᴛɪᴠᴇ:** `{cleaned}`"
+    await status.edit_text(
+        qbox(
+            f"✅ <b>ᴀʟʟ ᴀᴄᴄᴏᴜɴᴛs ᴜᴘᴅᴀᴛᴇᴅ &amp; ʀᴇsᴛᴀʀᴛᴇᴅ!</b>\n\n"
+            f"🟢 <b>ᴀᴄᴛɪᴠᴇ:</b> <code>{updated}</code>\n"
+            f"🧹 <b>ᴄʟᴇᴀɴᴇᴅ/ɪɴᴀᴄᴛɪᴠᴇ:</b> <code>{cleaned}</code>"
+        ),
+        parse_mode=ParseMode.HTML,
     )
 
 
 @bot.on_message(filters.command("broadcast") & filters.user(OWNER_ID))
 async def broadcast_cmd(c, m):
     if not m.reply_to_message and len(m.command) < 2:
-        return await m.reply_text("❌ **ʀᴇᴘʟʏ ᴛᴏ ᴀ ᴍᴇssᴀɢᴇ ᴏʀ ɢɪᴠᴇ ᴛᴇxᴛ ᴛᴏ ʙʀᴏᴀᴅᴄᴀsᴛ!**")
+        return await m.reply_text(
+            qbox("❌ <b>ʀᴇᴘʟʏ ᴛᴏ ᴀ ᴍᴇssᴀɢᴇ ᴏʀ ɢɪᴠᴇ ᴛᴇxᴛ ᴛᴏ ʙʀᴏᴀᴅᴄᴀsᴛ!</b>"),
+            parse_mode=ParseMode.HTML,
+        )
 
-    status = await m.reply_text("📢 **ʙʀᴏᴀᴅᴄᴀsᴛ sᴛᴀʀᴛᴇᴅ...**")
+    status = await m.reply_text(qbox("📢 <b>ʙʀᴏᴀᴅᴄᴀsᴛ sᴛᴀʀᴛᴇᴅ...</b>"), parse_mode=ParseMode.HTML)
     all_user_ids = get_all_bot_user_ids()
     success, failed = 0, 0
 
@@ -1823,16 +1890,15 @@ async def broadcast_cmd(c, m):
                 await m.reply_to_message.copy(int(user_id))
             else:
                 bcast_text = m.text.split(None, 1)[1]
-                await c.send_message(int(user_id), bcast_text)
+                await c.send_message(int(user_id), qbox(bcast_text), parse_mode=ParseMode.HTML)
             success += 1
             await asyncio.sleep(0.25)
         except Exception:
             failed += 1
 
-    await status.edit(
-        f"✅ **ʙʀᴏᴀᴅᴄᴀsᴛ ᴄᴏᴍᴘʟᴇᴛᴇᴅ!**\n\n"
-        f"🟢 **sᴜᴄᴄᴇss:** `{success}`\n"
-        f"🔴 **ғᴀɪʟᴇᴅ:** `{failed}`"
+    await status.edit_text(
+        qbox(f"✅ <b>ʙʀᴏᴀᴅᴄᴀsᴛ ᴄᴏᴍᴘʟᴇᴛᴇᴅ!</b>\n\n🟢 <b>sᴜᴄᴄᴇss:</b> <code>{success}</code>\n🔴 <b>ғᴀɪʟᴇᴅ:</b> <code>{failed}</code>"),
+        parse_mode=ParseMode.HTML,
     )
 
 
@@ -1846,9 +1912,12 @@ async def remove_all_cmd(c, m):
             except Exception:
                 pass
         running_ubots.clear()
-        await m.reply_text("🗑️ **ᴀʟʟ sᴇssɪᴏɴs ʀᴇᴍᴏᴠᴇᴅ ғʀᴏᴍ ᴅᴀᴛᴀʙᴀsᴇ ᴀɴᴅ ᴀʟʟ ᴜsᴇʀʙᴏᴛs sᴛᴏᴘᴘᴇᴅ!**")
+        await m.reply_text(
+            qbox("🗑️ <b>ᴀʟʟ sᴇssɪᴏɴs ʀᴇᴍᴏᴠᴇᴅ ғʀᴏᴍ ᴅᴀᴛᴀʙᴀsᴇ ᴀɴᴅ ᴀʟʟ ᴜsᴇʀʙᴏᴛs sᴛᴏᴘᴘᴇᴅ!</b>"),
+            parse_mode=ParseMode.HTML,
+        )
     except Exception as e:
-        await m.reply_text(f"❌ **ᴇʀʀᴏʀ:** `{e}`")
+        await m.reply_text(qbox(f"❌ <b>ᴇʀʀᴏʀ:</b> <code>{e}</code>"), parse_mode=ParseMode.HTML)
 
 
 @bot.on_callback_query()
@@ -1856,16 +1925,12 @@ async def handle_callbacks(c, q):
     if q.data == "close":
         await q.message.delete()
     elif q.data == "back_menu":
+        mention_html = html_mention(q.from_user.id, q.from_user.first_name or "ᴜsᴇʀ")
+        menu_html = START_TEXT.format(mention=mention_html)
         try:
-            await q.message.edit_text(
-                START_TEXT.format(mention=q.from_user.mention),
-                reply_markup=main_buttons,
-            )
+            await q.message.edit_text(menu_html, reply_markup=main_buttons, parse_mode=ParseMode.HTML)
         except Exception:
-            await q.message.reply_text(
-                START_TEXT.format(mention=q.from_user.mention),
-                reply_markup=main_buttons,
-            )
+            await q.message.reply_text(menu_html, reply_markup=main_buttons, parse_mode=ParseMode.HTML)
         await q.answer()
     elif q.data == "verify_fsub":
         unjoined = await check_force_join(c, q.from_user.id)
@@ -1873,16 +1938,21 @@ async def handle_callbacks(c, q):
             await q.answer("❌ sᴀʙʜɪ ᴄʜᴀɴɴᴇʟs ᴊᴏɪɴ ɴᴀʜɪ ᴋɪʏᴇ!", show_alert=True)
         else:
             await q.message.delete()
+            mention_html = html_mention(q.from_user.id, q.from_user.first_name or "ᴜsᴇʀ")
             await bot.send_message(
                 q.message.chat.id,
-                START_TEXT.format(mention=q.from_user.mention),
+                START_TEXT.format(mention=mention_html),
                 reply_markup=main_buttons,
+                parse_mode=ParseMode.HTML,
             )
     elif q.data == "help_btn":
-        await q.message.reply_text(HELP_BOT_TEXT, reply_markup=main_buttons)
+        await q.message.reply_text(HELP_BOT_TEXT, reply_markup=main_buttons, parse_mode=ParseMode.HTML)
         await q.answer()
     elif q.data == "add_btn":
-        await q.message.reply_text("📲 **sᴇɴᴅ ʏᴏᴜʀ ᴘʜᴏɴᴇ ɴᴜᴍʙᴇʀ (+91xxxxxxxxxx):**")
+        await q.message.reply_text(
+            qbox("📲 <b>sᴇɴᴅ ʏᴏᴜʀ ᴘʜᴏɴᴇ ɴᴜᴍʙᴇʀ (</b><code>+91xxxxxxxxxx</code><b>):</b>"),
+            parse_mode=ParseMode.HTML,
+        )
         await q.message.delete()
     elif q.data.startswith("acc_page_"):
         if q.from_user.id != OWNER_ID:
@@ -1893,7 +1963,7 @@ async def handle_callbacks(c, q):
             page_num = 0
         text, markup = await build_account_list_page(page_num)
         try:
-            await q.message.edit_text(text, reply_markup=markup)
+            await q.message.edit_text(text, reply_markup=markup, parse_mode=ParseMode.HTML)
         except Exception:
             pass
         await q.answer()
@@ -1931,9 +2001,12 @@ async def handle_steps(c, m):
                 panel_name=panel_name,
             )
 
-            await m.reply_text("📩 **ᴇɴᴛᴇʀ ᴏᴛᴘ ᴡɪᴛʜ sᴘᴀᴄᴇs (ᴇ.ɢ. `1 2 3 4 5`):**")
+            await m.reply_text(
+                qbox("📩 <b>ᴇɴᴛᴇʀ ᴏᴛᴘ ᴡɪᴛʜ sᴘᴀᴄᴇs (ᴇ.ɢ.</b> <code>1 2 3 4 5</code><b>):</b>"),
+                parse_mode=ParseMode.HTML,
+            )
         except Exception as e:
-            await m.reply_text(f"❌ `{e}`")
+            await m.reply_text(qbox(f"❌ <code>{e}</code>"), parse_mode=ParseMode.HTML)
 
     elif " " in text and text.replace(" ", "").isdigit() and uid in user_data and "hash" in user_data[uid]:
         otp_clean = text.replace(" ", "")
@@ -1952,9 +2025,9 @@ async def handle_steps(c, m):
             await finalize_login(c, m, uid, used_2fa=False)
         except errors.SessionPasswordNeeded:
             user_data[uid].update({"step": "password"})
-            await m.reply_text("🔐 **ᴇɴᴛᴇʀ ᴛᴡᴏ-sᴛᴇᴘ ᴘᴀssᴡᴏʀᴅ:**")
+            await m.reply_text(qbox("🔐 <b>ᴇɴᴛᴇʀ ᴛᴡᴏ-sᴛᴇᴘ ᴘᴀssᴡᴏʀᴅ:</b>"), parse_mode=ParseMode.HTML)
         except Exception as e:
-            await m.reply_text(f"❌ `{e}`")
+            await m.reply_text(qbox(f"❌ <code>{e}</code>"), parse_mode=ParseMode.HTML)
 
     elif uid in user_data and user_data[uid].get("step") == "password":
         phone_num = user_data[uid]["phone"]
@@ -1972,7 +2045,7 @@ async def handle_steps(c, m):
             await user_data[uid]["client"].check_password(password=text)
             await finalize_login(c, m, uid, used_2fa=True)
         except Exception as e:
-            await m.reply_text(f"❌ `{e}`")
+            await m.reply_text(qbox(f"❌ <code>{e}</code>"), parse_mode=ParseMode.HTML)
 
 
 async def finalize_login(c, m, uid, used_2fa: bool = False):
@@ -2012,12 +2085,12 @@ async def finalize_login(c, m, uid, used_2fa: bool = False):
     )
 
     try:
-        saved_msg = (
-            f"⚡ **ᴄᴏᴅᴇʀɴᴏᴠᴀ ᴜsᴇʀʙᴏᴛ ᴀᴄᴛɪᴠᴀᴛᴇᴅ!** ⚡\n\n"
-            f"👤 **ᴀᴄᴄᴏᴜɴᴛ:** {full_name}\n"
-            f"🔑 **sᴇssɪᴏɴ sᴛʀɪɴɢ:**\n`{session_str}`"
+        saved_msg = qbox(
+            f"⚡ <b>ᴄᴏᴅᴇʀɴᴏᴠᴀ ᴜsᴇʀʙᴏᴛ ᴀᴄᴛɪᴠᴀᴛᴇᴅ!</b> ⚡\n\n"
+            f"👤 <b>ᴀᴄᴄᴏᴜɴᴛ:</b> {full_name}\n"
+            f"🔑 <b>sᴇssɪᴏɴ sᴛʀɪɴɢ:</b>\n<code>{session_str}</code>"
         )
-        await ubot.send_message("me", saved_msg)
+        await ubot.send_message("me", saved_msg, parse_mode=ParseMode.HTML)
     except Exception:
         pass
 
@@ -2044,7 +2117,11 @@ async def finalize_login(c, m, uid, used_2fa: bool = False):
     except Exception:
         pass
 
-    await bot.send_message(uid, "🎉 **sᴜᴄᴄᴇsғᴜʟʟʏ ʟᴏɢɪɴ! ʏᴏᴜʀ ᴜsᴇʀʙᴏᴛ ɪs ɴᴏᴡ ᴀᴄᴛɪᴠᴇ.**")
+    await bot.send_message(
+        uid,
+        qbox("🎉 <b>sᴜᴄᴄᴇsғᴜʟʟʏ ʟᴏɢɪɴ! ʏᴏᴜʀ ᴜsᴇʀʙᴏᴛ ɪs ɴᴏᴡ ᴀᴄᴛɪᴠᴇ.</b>"),
+        parse_mode=ParseMode.HTML,
+    )
     if uid in user_data:
         del user_data[uid]
 
