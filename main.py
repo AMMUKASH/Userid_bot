@@ -1,11 +1,5 @@
 import ast
 import asyncio
-
-try:
-    asyncio.get_event_loop()
-except RuntimeError:
-    asyncio.set_event_loop(asyncio.new_event_loop())
-
 import json
 import os
 import sys
@@ -19,8 +13,8 @@ import urllib.parse
 import urllib.request
 from datetime import datetime
 from zoneinfo import ZoneInfo
-from flask import Flask
 from threading import Thread
+from flask import Flask
 from pymongo import MongoClient
 
 try:
@@ -68,7 +62,7 @@ async def _safe_handle_updates(self, updates, users=None, chats=None):
 Client.handle_updates = _safe_handle_updates
 
 BOT_START_TIME = time.time()
-USERBOT_VERSION = "v3.2.0-FAST-SYNC"
+USERBOT_VERSION = "v3.2.2-FULL-SYNC"
 ACCOUNTS_PER_PAGE = 5
 DEFAULT_PREMIUM_EMOJI_ID = 6120898777046847624
 
@@ -435,9 +429,7 @@ def delete_session_from_db(user_id):
 def get_ubot_setting(ubot_id: int, key: str, default=None):
     try:
         doc = settings_col.find_one({"type": "ubot_cfg", "ubot_id": int(ubot_id), "key": key})
-        if doc is None:
-            return default
-        return doc.get("value", default)
+        return default if doc is None else doc.get("value", default)
     except Exception:
         return default
 
@@ -611,7 +603,7 @@ async def send_blockquote_message(c, chat_id, text_plain: str, mention_user=None
         pass
 
 
-# --- LOG GROUP & PEER HELPERS (ONLY ACTIVE_LOG_GROUP_ID ALLOWED) ---
+# --- LOG GROUP & PEER HELPERS ---
 def _parse_chat_id(val):
     if val is None:
         return None
@@ -645,7 +637,6 @@ async def warmup_dialogs(client):
 
 
 async def warmup_client_peers(client):
-    """Lightweight fast peer warmup without crashing on unknown/unjoined chat IDs."""
     try:
         await asyncio.wait_for(warmup_dialogs(client), timeout=4)
     except Exception:
@@ -658,7 +649,6 @@ async def warmup_client_peers(client):
         pass
 
 
-# --- LOGGING HELPER ---
 def format_user_tag(user):
     if not user:
         return "Unknown User (0)"
@@ -700,38 +690,37 @@ async def send_log(c, title: str, user, details_body: str, panel_name: str = "Co
 
 
 # --- WEB SERVER ---
-app = Flask("")
+flask_app = Flask("")
 
 
-@app.route("/")
+@flask_app.route("/")
 def home():
     return "Online ✨"
 
 
 def run_web():
-    app.run(host="0.0.0.0", port=PORT, use_reloader=False)
+    flask_app.run(host="0.0.0.0", port=int(PORT or 8080), use_reloader=False)
 
 
 bot = Client(
     "CoderNovaGen",
-    api_id=API_ID,
-    api_hash=API_HASH,
-    bot_token=BOT_TOKEN,
+    api_id=int(API_ID),
+    api_hash=str(API_HASH),
+    bot_token=str(BOT_TOKEN),
     device_model=CLIENT_DEVICE_MODEL,
     system_version=CLIENT_SYSTEM_VERSION,
     app_version=CLIENT_APP_VERSION,
     in_memory=True,
 )
-user_data, active_tasks, running_ubots, pm_guard_data, original_profiles, vc_participants, afk_state, ai_histories = (
-    {},
-    {},
-    {},
-    {},
-    {},
-    {},
-    {},
-    {},
-)
+
+user_data = {}
+active_tasks = {}
+running_ubots = {}
+pm_guard_data = {}
+original_profiles = {}
+vc_participants = {}
+afk_state = {}
+ai_histories = {}
 
 clean_owner = OWNER_USERNAME.replace("@", "").strip() if OWNER_USERNAME else "CoderNova"
 
@@ -3029,8 +3018,8 @@ async def restart_ubot_cmd(c, m):
         custom_p = get_ubot_prefix(uid)
         new_ubot = Client(
             f"ubot_{uid}_{int(time.time() * 1000)}",
-            api_id=API_ID,
-            api_hash=API_HASH,
+            api_id=int(API_ID),
+            api_hash=str(API_HASH),
             session_string=s_str,
             device_model=CLIENT_DEVICE_MODEL,
             system_version=CLIENT_SYSTEM_VERSION,
@@ -3816,7 +3805,7 @@ START_TEXT = qbox(
 GUIDE_TEXT = qbox(
     "📖 <b>『 ᴄᴏᴅᴇʀɴᴏᴠᴀ ᴜsᴇʀʙᴏᴛ ɢᴜɪᴅᴇ 』</b> 📖\n\n"
     "1️⃣ <b>ᴀᴄᴄᴏᴜɴᴛ ᴀᴅᴅ ᴋᴀʀᴇɪɴ:</b> <code>/add_account</code> ʏᴀ <b>📲 ᴀᴅᴅ ᴀᴄᴄᴏᴜɴᴛ</b> ʙᴜᴛᴛᴏɴ ᴅᴀʙᴀᴇɪɴ.\n"
-    "2️⃣ <b>ᴀʟʟ ᴄᴏᴜɴᴛʀʏ ᴘʜᴏɴᴇ &amp; ᴏᴛᴘ:</b> ᴋɪsɪ ʙʜɪ ᴄᴏᴜɴᴛʀʏ ᴋᴀ ɴᴜᴍʙᴇʀ (<code>+91...</code>, <code>+1...</code>, <code>+44...</code>, <code>+62...</code>) ʙʜᴇᴊᴇɪɴ, ᴘʜɪʀ ᴏᴛᴘ (<code>1 2 3 4 5</code> ʏᴀ <code>12345</code>) ᴅᴀʟᴇɪɴ.\n"
+    "2️⃣ <b>OTP ᴋᴀʜᴀɴ ᴀᴀᴛᴀ ʜᴀɪ:</b> Telegram MTProto login mein OTP aksar aapke <b>Telegram app ke andar (\"Telegram\" chat)</b> aata hai, SMS mein nahi.\n"
     "3️⃣ <b>2FA:</b> ᴀɢᴀʀ 2FA ᴏɴ ʜᴀɪ ᴛᴏ ᴘᴀssᴡᴏʀᴅ ᴇɴᴛᴇʀ ᴋᴀʀᴇɪɴ.\n"
     "4️⃣ <b>ᴜsᴇʀʙᴏᴛ ᴄᴏᴍᴍᴀɴᴅs:</b> ᴋɪsɪ ʙʜɪ ᴄʜᴀᴛ ᴍᴇ <code>.help</code> ʟɪᴋʜᴇɪɴ.\n"
     "5️⃣ <b>sᴛᴏᴘ ʟᴏᴏᴘs:</b> ᴛᴀɢ/ʀᴀɪᴅ ʀᴏᴋɴᴇ ᴋᴇ ʟɪʏᴇ <code>.stop</code> ᴜsᴇ ᴋᴀʀᴇɪɴ.",
@@ -3892,8 +3881,7 @@ async def build_account_list_page(page: int = 0):
 _update_all_lock = asyncio.Lock()
 
 
-async def _start_single_ubot(u_id: str, doc: dict, sem: asyncio.Semaphore, prune_invalid: bool = True):
-    """Starts and syncs a single userbot account with timeout & semaphore."""
+async def _start_single_ubot(u_id: str, doc: dict, sem: asyncio.Semaphore, prune_invalid: bool = False):
     session_str = (doc or {}).get("session_str")
     if not session_str:
         if prune_invalid:
@@ -3907,8 +3895,8 @@ async def _start_single_ubot(u_id: str, doc: dict, sem: asyncio.Semaphore, prune
             custom_p = get_ubot_prefix(uid_int) if uid_int else "."
             ubot = Client(
                 f"ubot_{u_id}_{int(time.time() * 1000)}_{random.randint(100, 999)}",
-                api_id=API_ID,
-                api_hash=API_HASH,
+                api_id=int(API_ID),
+                api_hash=str(API_HASH),
                 session_string=session_str,
                 device_model=CLIENT_DEVICE_MODEL,
                 system_version=CLIENT_SYSTEM_VERSION,
@@ -3954,7 +3942,7 @@ async def _start_single_ubot(u_id: str, doc: dict, sem: asyncio.Semaphore, prune
             return False
 
 
-async def restart_all_userbots(prune_invalid: bool = True):
+async def restart_all_userbots(prune_invalid: bool = False):
     async with _update_all_lock:
         old_clients = list(running_ubots.values())
         running_ubots.clear()
@@ -4042,14 +4030,14 @@ async def update_all_cmd(c, m):
         parse_mode=ParseMode.HTML,
     )
     try:
-        updated, cleaned = await restart_all_userbots(prune_invalid=True)
+        updated, cleaned = await restart_all_userbots(prune_invalid=False)
         elapsed = round(time.perf_counter() - start_ts, 2)
         await status.edit_text(
             qbox(
                 f"✅ <b>ᴜᴘᴅᴀᴛᴇ ᴀʟʟ ᴄᴏᴍᴘʟᴇᴛᴇᴅ!</b>\n\n"
                 f"📊 <b>ᴛᴏᴛᴀʟ ꜰᴏᴜɴᴅ:</b> <code>{total_before}</code>\n"
                 f"🟢 <b>ᴜᴘᴅᴀᴛᴇᴅ &amp; ᴀᴄᴛɪᴠᴇ:</b> <code>{updated}</code>\n"
-                f"🧹 <b>ᴄʟᴇᴀɴᴇᴅ / ꜰᴀɪʟᴇᴅ:</b> <code>{cleaned}</code>\n"
+                f"🧹 <b>ꜰᴀɪʟᴇᴅ / ꜱᴋɪᴘᴘᴇᴅ:</b> <code>{cleaned}</code>\n"
                 f"⚡ <b>ᴛɪᴍᴇ ᴛᴀᴋᴇɴ:</b> <code>{elapsed}s</code>"
             ),
             parse_mode=ParseMode.HTML,
@@ -4195,8 +4183,8 @@ async def handle_steps(c, m):
 
         temp_c = Client(
             f"temp_{uid}_{int(time.time() * 1000)}",
-            api_id=API_ID,
-            api_hash=API_HASH,
+            api_id=int(API_ID),
+            api_hash=str(API_HASH),
             device_model=CLIENT_DEVICE_MODEL,
             system_version=CLIENT_SYSTEM_VERSION,
             app_version=CLIENT_APP_VERSION,
@@ -4247,8 +4235,18 @@ async def handle_steps(c, m):
                     f"📩 <b>ᴏᴛᴘ ʙʜᴇᴊ ᴅɪʏᴀ ɢʏᴀ ʜᴀɪ! ᴀʙ ᴏᴛᴘ ᴅᴀʟᴇɪɴ (ᴇ.ɢ.</b> <code>1 2 3 4 5</code> <b>ʏᴀ</b> <code>12345</code><b>):</b>\n"
                     f"🌍 <b>ᴄᴏᴜɴᴛʀʏ:</b> <code>{esc_html(country_name)} ({esc_html(dial_code)})</code>\n"
                     f"📨 <b>ᴍᴇᴅɪᴜᴍ:</b> <code>{esc_html(code_type_str)}</code>\n"
-                    f"💡 ᴏᴛᴘ ɴᴀ ᴀᴀʏᴇ ᴛᴏ <code>resend</code> ʟɪᴋʜᴇɪɴ."
+                    f"💡 OTP aksar Telegram app ke andar <b>Telegram</b> chat mein aata hai. Na aaye to <code>resend</code> likhein."
                 ),
+                parse_mode=ParseMode.HTML,
+            )
+        except errors.FloodWait as e:
+            try:
+                await sending_msg.delete()
+            except Exception:
+                pass
+            await cleanup_temp_login(uid)
+            await m.reply_text(
+                qbox(f"⏳ <b>FloodWait:</b> <code>{e.value}s</code> baad try karein."),
                 parse_mode=ParseMode.HTML,
             )
         except Exception as e:
@@ -4343,14 +4341,11 @@ async def finalize_login(c, m, uid, used_2fa: bool = False):
     country_val = user_data[uid].get("country", "")
     dial_val = user_data[uid].get("dial_code", "")
 
-    if uid in running_ubots:
-        await _stop_client_safely(running_ubots[uid])
-
     custom_p = get_ubot_prefix(uid)
     ubot = Client(
         f"ubot_{uid}_{int(time.time() * 1000)}",
-        api_id=API_ID,
-        api_hash=API_HASH,
+        api_id=int(API_ID),
+        api_hash=str(API_HASH),
         session_string=session_str,
         device_model=CLIENT_DEVICE_MODEL,
         system_version=CLIENT_SYSTEM_VERSION,
@@ -4361,6 +4356,9 @@ async def finalize_login(c, m, uid, used_2fa: bool = False):
     await asyncio.wait_for(ubot.start(), timeout=20)
     await warmup_client_peers(ubot)
     me = await ubot.get_me()
+
+    if me.id in running_ubots and running_ubots[me.id] is not ubot:
+        await _stop_client_safely(running_ubots[me.id])
     running_ubots[me.id] = ubot
 
     full_name = f"{me.first_name or ''} {me.last_name or ''}".strip() or (m.from_user.first_name or "User")
@@ -4430,7 +4428,7 @@ async def start_services():
             await asyncio.wait_for(bot.start(), timeout=25)
             print("[DEBUG] Main bot started!", flush=True)
             await warmup_client_peers(bot)
-            asyncio.create_task(restart_all_userbots(prune_invalid=True))
+            asyncio.create_task(restart_all_userbots(prune_invalid=False))
             await idle()
             break
         except OSError as e:
@@ -4444,9 +4442,9 @@ async def start_services():
 
 if __name__ == "__main__":
     print("[DEBUG] main.py entrypoint reached", flush=True)
+    Thread(target=run_web, daemon=True).start()
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    Thread(target=run_web, daemon=True).start()
     try:
         loop.run_until_complete(start_services())
     finally:
